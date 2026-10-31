@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>в мире бурмалды</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik+Mono+One&family=Oswald:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: 'Oswald', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* ================= ШАПКА ================= */
+  header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 14px 26px;
+    background: #07000d;
+    border-bottom: 2px solid #7a1fff;
+    position: relative;
+    z-index: 10;
+  }
+  .logo{
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: 26px;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-img{ height: 44px; width: auto; border-radius: 8px; object-fit: contain; }
+
+  .search{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #140024;
+    border: 2px solid #7a1fff;
+    border-radius: 40px;
+    padding: 7px 16px;
+    transition: border-color .3s;
+  }
+  .search:focus-within{ border-color: #a35bff; }
+  .search label{
+    color: #c9a7ff;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .search input{
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    width: 190px;
+  }
+  .search input::placeholder{ color: #6b4f8f; }
+  .search svg{ flex-shrink: 0; }
+
+  /* ================= КАРКАС ================= */
+  .layout{
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 26px;
+    padding: 26px;
+    width: 100%;
+  }
+
+  /* ================= МЕНЮ ================= */
+  .sidebar{
+    width: 230px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #17002e 0%, #05000a 100%);
+    border: 2px solid #7a1fff;
+    border-radius: 16px;
+    padding: 14px;
+    position: sticky;
+    top: 20px;
+  }
+  .sidebar .menu-title{
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #7a4fbf;
+    padding: 4px 12px 12px;
+    border-bottom: 1px solid #2a0052;
+    margin-bottom: 10px;
+  }
+  .side-btn{
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 2px solid transparent;
+    color: #c9a7ff;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    letter-spacing: .5px;
+    transition: background .25s, color .25s, transform .2s;
+  }
+  .side-btn:hover{
+    background: #2a0052;
+    color: #fff;
+    transform: translateX(4px);
+  }
+  .side-btn.active{ background: #7a1fff; color: #fff; }
+
+  /* ================= КОНТЕНТ ================= */
+  .content{ flex: 1; min-width: 0; }
+  .page{ display: none; animation: fade .35s ease; }
+  .page.active{ display: block; }
+  @keyframes fade{
+    from{ opacity: 0; transform: translateY(8px); }
+    to{ opacity: 1; transform: translateY(0); }
+  }
+  .page-title{
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: 20px;
+    color: #a35bff;
+    margin: 0 0 22px;
+    letter-spacing: 1px;
+  }
+
+  /* ================= СЕТКА АВАТАРОК ================= */
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 22px;
+    max-width: 780px;
+  }
+  .card{ cursor: pointer; text-align: center; user-select: none; }
+  .avatar-wrap{
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid #3d0d6b;
+    transition: transform .28s cubic-bezier(.2,.8,.3,1.4), border-color .28s;
+    background: #16002b;
+  }
+  .avatar-wrap img{
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+  }
+  .card:hover .avatar-wrap{
+    transform: scale(1.09);
+    border-color: #a35bff;
+  }
+  .card .nick{
+    margin-top: 9px;
+    font-size: 15px;
+    color: #e3d3ff;
+    letter-spacing: .3px;
+    transition: color .25s;
+  }
+  .card:hover .nick{ color: #a35bff; }
+  .empty{ color: #6b4f8f; font-size: 16px; margin-top: 26px; }
+
+  /* ================= МНЕ ПОВЕЗЁТ ================= */
+  .luck-box{
+    max-width: 780px;
+    background: linear-gradient(180deg, #17002e, #05000a);
+    border: 2px solid #7a1fff;
+    border-radius: 16px;
+    padding: 24px 22px 28px;
+    text-align: center;
+  }
+
+  .case-viewport{
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 132px;
+    background: linear-gradient(90deg, #0b0014 0%, #16002b 50%, #0b0014 100%);
+    border: 2px solid #7a1fff;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+  .case-track{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    will-change: transform;
+  }
+  .case-item{
+    flex: 0 0 150px;
+    height: calc(100% - 24px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    line-height: 1.25;
+    border-radius: 10px;
+    border: 2px solid #3d0d6b;
+    background: #16002b;
+    color: #d9c6ff;
+    overflow: hidden;
+    transition: border-color .3s, background .3s, color .3s;
+  }
+  .case-item.win{
+    border-color: #a35bff;
+    background: #2a0052;
+    color: #fff;
+  }
+  .case-item img{
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  .case-marker{
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    margin-left: -1.5px;
+    background: #a35bff;
+    pointer-events: none;
+  }
+  .case-marker::before,
+  .case-marker::after{
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+  }
+  .case-marker::before{ top: -2px; border-top: 10px solid #a35bff; }
+  .case-marker::after{ bottom: -2px; border-bottom: 10px solid #a35bff; }
+
+  .btn-row{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .luck-btn{
+    background: #d40000;
+    color: #fff;
+    border: 2px solid #ff4d4d;
+    border-radius: 14px;
+    padding: 16px 38px;
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform .2s, background .25s;
+  }
+  .luck-btn:hover{ background: #ff0000; transform: scale(1.06); }
+  .luck-btn:active{ transform: scale(.97); }
+
+  .skip-btn{
+    background: transparent;
+    color: #c9a7ff;
+    border: 2px solid #7a1fff;
+    border-radius: 14px;
+    padding: 14px 26px;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .25s, color .25s, transform .2s;
+  }
+  .skip-btn:hover{ background: #7a1fff; color: #fff; transform: scale(1.04); }
+  .skip-btn[hidden]{ display: none !important; }
+
+  .phrase{
+    margin-top: 26px;
+    min-height: 40px;
+    font-size: 21px;
+    color: #ffd24a;
+    line-height: 1.4;
+  }
+  .phrase.pop{ animation: pop .35s ease; }
+  @keyframes pop{
+    from{ opacity: 0; transform: scale(.85); }
+    to{ opacity: 1; transform: scale(1); }
+  }
+  .phrase-img{
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 280px;
+    max-height: 240px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 2px solid #a35bff;
+    cursor: zoom-in;
+  }
+
+  /* ================= КОНТАКТЫ / СОТРУДНИЧЕСТВО ================= */
+  .info-box{
+    max-width: 780px;
+    background: linear-gradient(180deg, #17002e, #05000a);
+    border: 2px solid #7a1fff;
+    border-radius: 16px;
+    padding: 30px;
+    font-size: 17px;
+    color: #d9c6ff;
+    line-height: 1.8;
+  }
+  .info-box b{ color: #fff; }
+
+  .doc-line{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #0b0014;
+    border: 2px solid #3d0d6b;
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 22px;
+    transition: border-color .25s;
+  }
+  .doc-line:hover{ border-color: #7a1fff; }
+  .doc-img{
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 2px solid #7a1fff;
+    background: #16002b;
+    cursor: zoom-in;
+    transition: transform .25s, border-color .25s;
+  }
+  .doc-img:hover{ transform: scale(1.06); border-color: #a35bff; }
+  .doc-text{ display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .doc-text a{
+    color: #ffd24a;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px dashed #ffd24a;
+    word-break: break-word;
+    transition: color .25s, border-color .25s;
+  }
+  .doc-text a:hover{ color: #fff; border-color: #fff; }
+
+  .correspondent{
+    margin: 22px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid #2a0052;
+    font-size: 17px;
+    color: #d9c6ff;
+    line-height: 1.6;
+  }
+  .correspondent span{
+    color: #8a5bff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 12px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .correspondent b{ color: #fff; font-size: 18px; }
+
+  .partner-wrap{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 20px 0 40px;
+  }
+  .partner-img{
+    width: 25vw;
+    min-width: 190px;
+    max-width: 420px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    border: 3px solid #7a1fff;
+    animation: floaty 4s ease-in-out infinite;
+    cursor: zoom-in;
+  }
+  @keyframes floaty{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-10px); }
+  }
+  .partner-caption{
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: clamp(18px, 2.2vw, 30px);
+    color: #35d94a;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+
+  /* ================= ПОДВАЛ ================= */
+  footer{
+    background: #07000d;
+    border-top: 2px solid #7a1fff;
+    text-align: center;
+    padding: 24px 20px 26px;
+  }
+  .discord-row{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .footer-img{
+    height: 36px;
+    width: auto;
+    border-radius: 8px;
+    object-fit: contain;
+    background: #16002b;
+    border: 2px solid #7a1fff;
+    padding: 2px;
+  }
+  footer .discord{ font-size: 18px; color: #fff; letter-spacing: 1px; }
+  footer .ooo{
+    margin-top: 8px;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #8a5bff;
+    text-transform: uppercase;
+  }
+
+  /* ================= МОДАЛЬНОЕ ОКНО ================= */
+  .modal{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .88);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+  }
+  .modal.open{ display: flex; animation: fade .25s ease; }
+  .modal-box{
+    position: relative;
+    background: #0b0014;
+    border: 2px solid #7a1fff;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 22px;
+  }
+  .modal-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #2a0052;
+  }
+  .modal-title{
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: 20px;
+    color: #a35bff;
+    margin: 0;
+    letter-spacing: 1px;
+  }
+  .modal-close{
+    background: transparent;
+    border: 2px solid #7a1fff;
+    color: #c9a7ff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .25s, color .25s, transform .25s;
+  }
+  .modal-close:hover{ background: #7a1fff; color: #fff; transform: rotate(90deg); }
+
+  .modal-images{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .modal-images img{
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #2a0052;
+    cursor: zoom-in;
+    transition: transform .25s, border-color .25s;
+  }
+  .modal-images img:hover{ transform: scale(1.04); border-color: #a35bff; }
+
+  .modal-note{
+    grid-column: 1 / -1;
+    text-align: center;
+    font-family: 'Rubik Mono One', Impact, sans-serif;
+    font-size: clamp(22px, 4vw, 40px);
+    color: #ff1a1a;
+    text-shadow: 0 0 16px rgba(255, 26, 26, .7);
+    padding: 26px 10px;
+    letter-spacing: 2px;
+  }
+
+  .verity-row{
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid #2a0052;
+  }
+  .verity-row[hidden]{ display: none !important; }
+  .verity-btn{
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border: 2px solid #7a1fff;
+    border-radius: 12px;
+    background: #16002b;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform .2s, border-color .2s;
+  }
+  .verity-btn:hover{ transform: scale(1.08); border-color: #a35bff; }
+  .verity-btn img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ================= ЛАЙТБОКС ================= */
+  .lightbox{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .96);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 200;
+    cursor: zoom-out;
+  }
+  .lightbox.open{ display: flex; animation: fade .2s ease; }
+  .lightbox img{
+    max-width: 96vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 10px;
+    border: 2px solid #7a1fff;
+    cursor: default;
+  }
+  .lightbox-close{
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: transparent;
+    border: 2px solid #7a1fff;
+    color: #c9a7ff;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .25s, color .25s, transform .25s;
+  }
+  .lightbox-close:hover{ background: #7a1fff; color: #fff; transform: rotate(90deg); }
+
+  /* ================= АДАПТИВ ================= */
+  @media (max-width: 860px){
+    .layout{ flex-direction: column; padding: 16px; gap: 18px; }
+    .sidebar{ width: 100%; position: static; }
+    .side-btn{ display: inline-block; width: auto; margin: 0 6px 6px 0; }
+    .sidebar .menu-title{ border: none; }
+    .logo{ font-size: 18px; gap: 8px; }
+    .logo-img{ height: 32px; }
+    .search input{ width: 120px; }
+    .grid{ gap: 14px; max-width: 100%; }
+    .card .nick{ font-size: 12px; }
+
+    .case-viewport{ height: 112px; }
+    .case-item{ flex: 0 0 112px; font-size: 11px; }
+    .doc-img{ width: 50px; height: 50px; }
+    .doc-text a{ font-size: 14px; }
+    .phrase{ font-size: 17px; }
+    .phrase-img{ max-width: 220px; max-height: 200px; }
+
+    .footer-img{ height: 28px; }
+    footer .discord{ font-size: 15px; }
+
+    .verity-btn{ width: 46px; height: 46px; }
+
+    .correspondent{ font-size: 15px; }
+    .correspondent b{ font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Аудио из папки sounds -->
+<audio id="sndMenu"  src="sounds/menu.mp3"     preload="auto"></audio>
+<audio id="sndClick" src="sounds/click.mp3"    preload="auto"></audio>
+<audio id="sndDice"  src="sounds/diceroll.mp3" preload="auto"></audio>
+
+<!-- ================= ШАПКА ================= -->
+<header>
+  <h1 class="logo">
+    <img src="images/burmalda.png" alt="burmalda" class="logo-img">
+    <span>в мире бурмалды</span>
+  </h1>
+
+  <div class="search">
+    <label for="searchInput">поиск</label>
+    <input id="searchInput" type="text" placeholder="введи никнейм..." autocomplete="off">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+         stroke="#a35bff" stroke-width="2.4" stroke-linecap="round">
+      <circle cx="10.5" cy="10.5" r="6.5"></circle>
+      <line x1="15.5" y1="15.5" x2="21" y2="21"></line>
+    </svg>
+  </div>
+</header>
+
+<!-- ================= КАРКАС ================= -->
+<div class="layout">
+
+  <!-- ЛЕВОЕ МЕНЮ -->
+  <aside class="sidebar">
+    <div class="menu-title">меню</div>
+    <nav>
+      <button class="side-btn active" data-page="home">главная</button>
+      <button class="side-btn" data-page="luck">Мне сегодня повезет</button>
+      <button class="side-btn" data-page="contacts">Контакты</button>
+      <button class="side-btn" data-page="partners">Сотрудничают с нами</button>
+    </nav>
+  </aside>
+
+  <!-- КОНТЕНТ -->
+  <main class="content">
+
+    <!-- ГЛАВНАЯ -->
+    <section class="page active" id="page-home">
+      <h2 class="page-title">участники</h2>
+      <div class="grid" id="peopleGrid"></div>
+      <p class="empty" id="emptyMsg" hidden>никого не нашли :(</p>
+    </section>
+
+    <!-- МНЕ ПОВЕЗЁТ -->
+    <section class="page" id="page-luck">
+      <h2 class="page-title">мне сегодня повезет</h2>
+
+      <div class="luck-box">
+        <div class="case-viewport" id="caseViewport">
+          <div class="case-track" id="caseTrack"></div>
+          <div class="case-marker"></div>
+        </div>
+
+        <div class="btn-row">
+          <button class="luck-btn" id="luckBtn">ИСПЫТАТЬ УДАЧУ</button>
+          <button class="skip-btn" id="skipBtn" hidden>пропустить</button>
+        </div>
+
+        <div class="phrase" id="phrase">нажми на кнопку...</div>
+      </div>
+    </section>
+
+    <!-- КОНТАКТЫ -->
+    <section class="page" id="page-contacts">
+      <h2 class="page-title">Контакты</h2>
+      <div class="info-box">
+        <div class="doc-line">
+          <img class="doc-img zoomable" src="images/STAT.png" alt="STAT">
+          <div class="doc-text">
+            <a href="https://100points.ru/wiki/physics/parametry-gazovyh-veshchestv/?ysclid=mvvac67lx1137091574"
+               target="_blank" rel="noopener noreferrer"
+               title="параметры газовых веществ">
+              параметры газовых веществ
+            </a>
+          </div>
+        </div>
+
+        <p><b>discord : b.r.a.h.</b></p>
+        <p>OOO JJS BRATVA</p>
+
+        <div class="correspondent">
+          <span>корреспондент</span>
+          <b>Шмалько Павлик Евграфович</b>
+        </div>
+      </div>
+    </section>
+
+    <!-- СОТРУДНИЧАЮТ С НАМИ -->
+    <section class="page" id="page-partners">
+      <h2 class="page-title">сотрудничают с нами</h2>
+      <div class="partner-wrap">
+        <img class="partner-img zoomable" src="images/ILYA.png" alt="ИЛЬЯ РАЗОБЛАЧИТЕЛЬ">
+        <div class="partner-caption">ИЛЬЯ РАЗОБЛАЧИТЕЛЬ</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ================= ПОДВАЛ ================= -->
+<footer>
+  <div class="discord-row">
+    <img class="footer-img" src="images/BRAH.png" alt="BRAH">
+    <span class="discord">discord : b.r.a.h.</span>
+  </div>
+  <div class="ooo">OOO JJS BRATVA</div>
+</footer>
+
+<!-- ================= МОДАЛЬНОЕ ОКНО ================= -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 class="modal-title" id="modalTitle">ник</h3>
+      <button class="modal-close" id="modalClose" aria-label="Закрыть">&times;</button>
+    </div>
+    <div class="modal-images" id="modalImages"></div>
+
+    <div class="verity-row" id="verityRow" hidden>
+      <button class="verity-btn" id="verityBtn" type="button">
+        <img src="images/verity.png" alt="verity">
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ЛАЙТБОКС ================= -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Закрыть">&times;</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+/* ============================================================
+   1. ДАННЫЕ ЛЮДЕЙ
+   aliases — синонимы для поиска
+   ============================================================ */
+const people = [
+  {
+    nick: 'Лиф',
+    avatar: 'images/leaf.PNG',
+    images: ['images/LEAF1.png', 'images/LEAF2.jpg', 'images/LEAF3.png',
+             'images/LEAF4.png', 'images/LEAF5.png', 'images/LEAF6.png']
+  },
+  {
+    nick: 'Шрек',
+    avatar: 'images/SHREK.png',
+    aliases: ['куколд', 'каблук'],
+    images: ['images/SHREK1.png', 'images/SHREK2.png', 'images/SHREK3.png',
+             'images/SHREK4.png', 'images/SHREK5.png']
+  },
+  {
+    nick: 'Шмелько',
+    avatar: 'images/SMELKO.png',
+    images: ['images/SMELKO1.png', 'images/SMELKO2.png', 'images/SMELKO3.png',
+             'images/SMELKO4.png', 'images/SMELKO5.png']
+  },
+  {
+    nick: 'Музан',
+    avatar: 'images/MUZZON.png',
+    images: ['images/MUZAN1.png', 'images/MUZAN2.png', 'images/MUZAN3.png',
+             'images/MUZAN4.png']
+  },
+  {
+    nick: 'Kit',
+    avatar: 'images/KIT.png',
+    images: ['images/KIT1.png', 'images/KIT2.png', 'images/KIT3.png', 'images/KIT4.png']
+  },
+  {
+    nick: 'Мекантус',
+    avatar: 'images/MEC.png',
+    note: 'по нему видно',
+    verify: 'images/MEC1.png'
+  },
+  {
+    nick: 'Нитроген',
+    avatar: 'images/NITR.png',
+    note: 'НОРМ ЧЮВАК НЕ ДОЕБАТЬСЯ',
+    verify: 'images/NITR1.png'
+  },
+  {
+    nick: 'Дадакич',
+    avatar: 'images/DADAKICH.png',
+    images: ['images/DADAKICH1.png', 'images/DADAKICH2.png', 'images/DADAKICH3.png',
+             'images/DADAKICH4.png', 'images/DADAKICH5.png', 'images/DADAKICH6.png']
+  },
+  {
+    nick: 'Кокос',
+    avatar: 'images/COCOS.png',
+    aliases: ['куколд', 'каблук'],
+    images: ['images/COCOS1.png', 'images/COCOS2.png', 'images/COCOS3.png',
+             'images/COCOS4.png', 'images/COCOS5.png', 'images/COCOS6.png',
+             'images/COCOS7.png', 'images/COCOS8.png', 'images/COCOS9.png',
+             'images/COCOS10.png']
+  },
+  {
+    nick: 'Махи',
+    avatar: 'images/MAHI.png',
+    images: ['images/MAHI1.png', 'images/MAHI2.png']
+  }
+];
+
+/* ============================================================
+   2. ЗВУКИ
+   ============================================================ */
+function playSound(id){
+  const a = document.getElementById(id);
+  if (!a) return;
+  try {
+    a.currentTime = 0;
+    const p = a.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* ignore */ }
+}
+
+['sndMenu','sndClick','sndDice'].forEach((id) => {
+  const a = document.getElementById(id);
+  if (a) { try { a.load(); } catch (e) {} }
+});
+
+/* ============================================================
+   3. ЗАГЛУШКА ДЛЯ БИТЫХ КАРТИНОК
+   ============================================================ */
+function makeFallback(img, ch){
+  img.onerror = null;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">` +
+    `<rect width="100%" height="100%" fill="#240046"/>` +
+    `<text x="50%" y="50%" fill="#a35bff" font-size="110" font-family="sans-serif" ` +
+    `text-anchor="middle" dominant-baseline="central">${ch}</text></svg>`;
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* Логотип */
+const logoImg = document.querySelector('.logo-img');
+if (logoImg) logoImg.onerror = function(){ this.style.display = 'none'; };
+
+/* STAT.png */
+const docImg = document.querySelector('.doc-img');
+if (docImg) docImg.onerror = () => makeFallback(docImg, 'S');
+
+/* BRAH.png */
+const footerImg = document.querySelector('.footer-img');
+if (footerImg) footerImg.onerror = function(){ this.style.display = 'none'; };
+
+/* ILYA.png */
+document.querySelectorAll('.partner-img').forEach((img) => {
+  img.onerror = () => makeFallback(img, 'И');
+});
+
+/* verity.png */
+const verityRow = document.getElementById('verityRow');
+const verityBtn = document.getElementById('verityBtn');
+const verityImg = verityBtn.querySelector('img');
+if (verityImg) verityImg.onerror = () => { verityRow.hidden = true; };
+
+/* ============================================================
+   4. РЕНДЕР СЕТКИ АВАТАРОК
+   ============================================================ */
+const grid = document.getElementById('peopleGrid');
+
+people.forEach((person) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.nick = person.nick;
+  card.dataset.search = [person.nick, ...(person.aliases || [])].join(' ').toLowerCase();
+
+  card.innerHTML = `
+    <div class="avatar-wrap">
+      <img src="${person.avatar}" alt="${person.nick}" loading="lazy">
+    </div>
+    <div class="nick">${person.nick}</div>
+  `;
+
+  const img = card.querySelector('img');
+  img.onerror = () => makeFallback(img, person.nick.charAt(0));
+
+  card.addEventListener('click', () => openModal(person));
+  grid.appendChild(card);
+});
+
+/* ============================================================
+   5. МОДАЛЬНОЕ ОКНО
+   ============================================================ */
+const modal        = document.getElementById('modal');
+const modalTitle   = document.getElementById('modalTitle');
+const modalImages  = document.getElementById('modalImages');
+
+let currentVerify = null;
+
+function openModal(person){
+  playSound('sndClick');
+
+  modalTitle.textContent = person.nick;
+  modalImages.innerHTML = '';
+
+  currentVerify = person.verify || null;
+  verityRow.hidden = !currentVerify;
+
+  if (person.note){
+    const note = document.createElement('div');
+    note.className = 'modal-note';
+    note.textContent = person.note;
+    modalImages.appendChild(note);
+  } else {
+    person.images.forEach((src) => {
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = person.nick;
+      img.loading = 'lazy';
+      img.onerror = () => makeFallback(img, person.nick.charAt(0));
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openLightbox(src);
+      });
+      modalImages.appendChild(img);
+    });
+  }
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(){
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+  currentVerify = null;
+  verityRow.hidden = true;
+}
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+verityBtn.addEventListener('click', () => {
+  if (!currentVerify) return;
+
+  const img = document.createElement('img');
+  img.src = currentVerify;
+  img.alt = 'verity';
+  img.loading = 'lazy';
+  img.onerror = () => makeFallback(img, 'V');
+  img.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openLightbox(currentVerify);
+  });
+  modalImages.appendChild(img);
+
+  verityRow.hidden = true;
+});
+
+/* ============================================================
+   6. ЛАЙТБОКС
+   ============================================================ */
+const lightbox      = document.getElementById('lightbox');
+const lightboxImg   = document.getElementById('lightboxImg');
+const lightboxClose = document.getElementById('lightboxClose');
+
+function openLightbox(src){
+  lightboxImg.src = src;
+  lightboxImg.onerror = () => makeFallback(lightboxImg, 'X');
+  lightbox.classList.add('open');
+}
+
+function closeLightbox(){
+  lightbox.classList.remove('open');
+  lightboxImg.src = '';
+}
+
+lightboxClose.addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', (e) => {
+  if (e.target === lightbox) closeLightbox();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (lightbox.classList.contains('open')) {
+    closeLightbox();
+  } else if (modal.classList.contains('open')) {
+    closeModal();
+  }
+});
+
+document.querySelectorAll('.zoomable').forEach((img) => {
+  img.addEventListener('click', () => openLightbox(img.src));
+});
+
+/* ============================================================
+   7. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+   ============================================================ */
+const menuBtns = document.querySelectorAll('.side-btn');
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach((p) => {
+    p.classList.toggle('active', p.id === 'page-' + name);
+  });
+  menuBtns.forEach((b) => {
+    b.classList.toggle('active', b.dataset.page === name);
+  });
+}
+
+menuBtns.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    playSound('sndMenu');
+    showPage(btn.dataset.page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+/* ============================================================
+   8. ПОИСК ПО НИКНЕЙМУ + СИНОНИМАМ
+   ============================================================ */
+const searchInput = document.getElementById('searchInput');
+const emptyMsg    = document.getElementById('emptyMsg');
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+
+  if (q && !document.getElementById('page-home').classList.contains('active')) {
+    showPage('home');
+  }
+
+  let visible = 0;
+  document.querySelectorAll('#peopleGrid .card').forEach((card) => {
+    const match = card.dataset.search.includes(q);
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+
+  emptyMsg.hidden = visible !== 0;
+});
+
+/* ============================================================
+   9. ФРАЗЫ ДЛЯ КЕЙСА
+   ============================================================ */
+const phrases = [
+  'Лиф слил фотику на махораге',
+  'ШРЕК кукич',
+  'Ебанные зайцы',
+  'jjs bratva важнее всего на свете',
+  'Шмелько Павлик Евграфович хуесос',
+  'Брах норм чел',
+  'Также я который веду себя как ебанный каблук захожу на бурмалду, где меня все будут уважать и почитать',
+  'Приколюшки дзюдо лучшая игра',
+  'хакер в реках',
+  'Ебанные кокоси',
+  'фыаолфра',
+  'Удалите этот ебанный сервер',
+  'мяу господин нитроген',
+  'Анкхити',
+  'Брахити',
+  'Китити',
+  'Павнити'
+];
+
+/* ============================================================
+   10. КЕЙС: ПРОКРУТКА + ПРОПУСК + РЕДКАЯ КАРТИНКА
+   ============================================================ */
+const caseViewport = document.getElementById('caseViewport');
+const caseTrack    = document.getElementById('caseTrack');
+const luckBtn      = document.getElementById('luckBtn');
+const skipBtn      = document.getElementById('skipBtn');
+const phraseEl     = document.getElementById('phrase');
+
+const DURATION       = 5000;
+const SPECIAL_IMAGE  = 'images/BRAH1.png';
+const SPECIAL_CHANCE = 0.05;
+
+let animId = null;
+let running = false;
+let finishHandler = null;
+
+function randomPhrase(){
+  return phrases[Math.floor(Math.random() * phrases.length)];
+}
+
+function runCase(){
+  if (running) return;
+  running = true;
+
+  phraseEl.innerHTML = '';
+  phraseEl.classList.remove('pop');
+  cancelAnimationFrame(animId);
+
+  const ITEMS = 55;
+  const WIN_INDEX = 48;
+
+  const isSpecial = Math.random() < SPECIAL_CHANCE;
+  const winner = isSpecial ? null : randomPhrase();
+
+  caseTrack.innerHTML = '';
+  let winnerEl = null;
+
+  /* во время прокрутки — только фразы */
+  for (let i = 0; i < ITEMS; i++){
+    const el = document.createElement('div');
+    el.className = 'case-item';
+    el.textContent = randomPhrase();
+    caseTrack.appendChild(el);
+    if (i === WIN_INDEX) winnerEl = el;
+  }
+
+  const vw = caseViewport.clientWidth;
+  const firstEl = caseTrack.firstElementChild;
+
+  const startX  = vw / 2 - (firstEl.offsetLeft + firstEl.offsetWidth / 2);
+  const targetX = vw / 2 - (winnerEl.offsetLeft + winnerEl.offsetWidth / 2);
+
+  caseTrack.style.transform = `translateX(${startX}px)`;
+
+  const finish = () => {
+    cancelAnimationFrame(animId);
+    caseTrack.style.transform = `translateX(${targetX}px)`;
+    winnerEl.classList.add('win');
+
+    phraseEl.innerHTML = '';
+    phraseEl.classList.add('pop');
+
+    if (isSpecial){
+      winnerEl.textContent = '';
+      const smallImg = document.createElement('img');
+      smallImg.src = SPECIAL_IMAGE;
+      smallImg.alt = 'BRAH1';
+      smallImg.onerror = () => { winnerEl.textContent = '???'; };
+      winnerEl.appendChild(smallImg);
+
+      const bigImg = document.createElement('img');
+      bigImg.className = 'phrase-img';
+      bigImg.src = SPECIAL_IMAGE;
+      bigImg.alt = 'BRAH1';
+      bigImg.onerror = () => makeFallback(bigImg, 'B');
+      bigImg.addEventListener('click', () => openLightbox(SPECIAL_IMAGE));
+      phraseEl.appendChild(bigImg);
+    } else {
+      winnerEl.textContent = winner;
+      phraseEl.textContent = winner;
+    }
+
+    skipBtn.hidden = true;
+    running = false;
+    finishHandler = null;
+  };
+  finishHandler = finish;
+
+  skipBtn.hidden = false;
+
+  playSound('sndDice');
+
+  const t0 = performance.now();
+
+  function frame(now){
+    const t = Math.min(1, (now - t0) / DURATION);
+    const eased = 1 - Math.pow(1 - t, 4);
+    const x = startX + (targetX - startX) * eased;
+    caseTrack.style.transform = `translateX(${x}px)`;
+
+    if (t < 1){
+      animId = requestAnimationFrame(frame);
+    } else {
+      finish();
+    }
+  }
+
+  animId = requestAnimationFrame(frame);
+}
+
+luckBtn.addEventListener('click', runCase);
+
+skipBtn.addEventListener('click', () => {
+  if (!running || !finishHandler) return;
+  cancelAnimationFrame(animId);
+  finishHandler();
+});
+</script>
+</body>
+</html>
