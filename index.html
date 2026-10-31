@@ -446,6 +446,7 @@
     background: #16002b;
     border: 2px solid #7a1fff;
     padding: 2px;
+    cursor: pointer; /* Кликабельно */
   }
   footer .discord{ font-size: 18px; color: #fff; letter-spacing: 1px; }
   footer .ooo{
@@ -688,7 +689,6 @@
   }
   .lb-btn:hover{ background: #7a1fff; color: #fff; }
 
-  /* Стрелки для переключения изображений */
   .lb-arrow{
     position: absolute;
     top: 50%;
@@ -1066,7 +1066,7 @@
 <!-- ================= ПОДВАЛ ================= -->
 <footer>
   <div class="discord-row">
-    <img class="footer-img" src="images/BRAH.png" alt="BRAH">
+    <img class="footer-img" id="brahImg" src="images/BRAH.png" alt="BRAH">
     <span class="discord">discord : b.r.a.h.</span>
   </div>
   <div class="ooo">OOO JJS BRATVA</div>
@@ -1124,7 +1124,8 @@ const people = [
     avatar: 'images/leaf.png',
     images: ['images/LEAF1.png', 'images/LEAF2.jpg', 'images/LEAF3.png',
              'images/LEAF4.png', 'images/LEAF5.png', 'images/LEAF6.png',
-             'images/LEAF7.png', 'images/LEAF8.png']
+             'images/LEAF7.png', 'images/LEAF8.png', 'images/LEAF9.png',
+             'images/LEAF10.png', 'images/LEAF11.png']
   },
   {
     nick: 'Шрек',
@@ -1132,7 +1133,7 @@ const people = [
     aliases: ['куколд', 'каблук'],
     images: ['images/SHREK1.png', 'images/SHREK2.png', 'images/SHREK3.png',
              'images/SHREK4.png', 'images/SHREK5.png',
-             'images/SHREK7.png', 'images/SHREK8.png']
+             'images/SHREK7.png', 'images/SHREK8.png', 'images/SHREK9.png']
   },
   {
     nick: 'Шмелько',
@@ -1194,7 +1195,7 @@ const people = [
   {
     nick: 'Махи',
     avatar: 'images/MAHI.png',
-    images: ['images/MAHI1.png', 'images/MAHI2.png', 'images/MAHI3.png']
+    images: ['images/MAHI1.png', 'images/MAHI2.png', 'images/MAHI3.png', 'images/MAHI4.png']
   },
   {
     nick: 'Пешка',
@@ -1216,7 +1217,7 @@ const people = [
   {
     nick: 'Морозко',
     avatar: 'images/MOR.png',
-    images: ['images/MOR1.png', 'images/MOR2.png', 'images/MOR3.png']
+    images: ['images/MOR1.png', 'images/MOR2.png', 'images/MOR3.png', 'images/MOR4.png']
   },
   {
     nick: 'Берибер',
@@ -1224,6 +1225,17 @@ const people = [
     images: ['images/BER1.png', 'images/BER2.png', 'images/BER3.png']
   }
 ];
+
+/* Специальный «участник» для клика по BRAH.png */
+const brahPerson = {
+  nick: 'BRAH',
+  avatar: 'images/BRAH.png',
+  images: [
+    'images/BRAH2.png', 'images/BRAH3.png', 'images/BRAH4.png',
+    'images/BRAH5.png', 'images/BRAH6.png', 'images/BRAH7.png',
+    'images/BRAH8.png', 'images/BRAH9.png', 'images/BRAH10.png'
+  ]
+};
 
 /* ============================================================
    2. ЗВУКИ
@@ -1264,9 +1276,12 @@ if (logoImg) logoImg.onerror = function(){ this.style.display = 'none'; };
 const docImg = document.querySelector('.doc-img');
 if (docImg) docImg.onerror = () => makeFallback(docImg, 'S');
 
-/* BRAH.png */
+/* BRAH.png в подвале */
 const footerImg = document.querySelector('.footer-img');
-if (footerImg) footerImg.onerror = function(){ this.style.display = 'none'; };
+if (footerImg) {
+  footerImg.onerror = function(){ this.style.display = 'none'; };
+  footerImg.addEventListener('click', () => openModal(brahPerson));
+}
 
 /* ILYA.png */
 document.querySelectorAll('.partner-img').forEach((img) => {
@@ -1452,7 +1467,6 @@ lightbox.addEventListener('click', (e) => {
   if (e.target === lightbox) closeLightbox();
 });
 
-/* Стрелки */
 lbPrev.addEventListener('click', (e) => {
   e.stopPropagation();
   showImageByIndex(lbIndex - 1);
@@ -1463,7 +1477,6 @@ lbNext.addEventListener('click', (e) => {
   showImageByIndex(lbIndex + 1);
 });
 
-/* Колесико мыши */
 lightbox.addEventListener('wheel', (e) => {
   if (!lightbox.classList.contains('open')) return;
   e.preventDefault();
@@ -1472,7 +1485,6 @@ lightbox.addEventListener('wheel', (e) => {
   updateLightboxTransform();
 }, { passive: false });
 
-/* Мышь */
 lightboxImg.addEventListener('mousedown', (e) => {
   e.preventDefault();
   isDragging = true;
@@ -1495,7 +1507,6 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-/* Тач */
 lightboxImg.addEventListener('touchstart', (e) => {
   if (e.touches.length === 1) {
     isDragging = true;
@@ -1553,7 +1564,6 @@ lightboxImg.addEventListener('touchend', (e) => {
   lastTap = currentTime;
 });
 
-/* Кнопки зума */
 lbZoomIn.addEventListener('click', () => {
   lbScale = Math.min(lbScale + 0.5, 5);
   updateLightboxTransform();
@@ -1599,7 +1609,6 @@ function showPage(name){
     b.classList.toggle('active', b.dataset.page === name);
   });
 
-  // Показываем кнопку STYL только на главной странице
   if (stylBtn) {
     stylBtn.style.display = (name === 'home') ? 'flex' : 'none';
   }
