@@ -430,6 +430,7 @@
     border-top: 2px solid #7a1fff;
     text-align: center;
     padding: 24px 20px 26px;
+    position: relative; /* Чтобы позиционировать кнопку STYL внутри подвала */
   }
   .discord-row{
     display: inline-flex;
@@ -453,6 +454,81 @@
     letter-spacing: 4px;
     color: #8a5bff;
     text-transform: uppercase;
+  }
+
+  /* ================= КНОПКА STYL (В ПРАВОМ УГЛУ ПОДВАЛА) ================= */
+  .styl-btn{
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid #7a1fff;
+    background: #0b0014;
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(122, 31, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .styl-btn:hover, .styl-btn:active {
+    transform: translateY(-50%);
+  }
+  .styl-btn img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+  }
+
+  /* ================= ВИДЕО МОДАЛ ================= */
+  .video-modal{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    padding: 20px;
+  }
+  .video-modal.open{
+    display: flex;
+    animation: fade .25s ease;
+  }
+  .video-modal video{
+    max-width: 96vw;
+    max-height: 88vh;
+    border-radius: 12px;
+    border: 2px solid #7a1fff;
+    background: #000;
+    outline: none;
+  }
+  .video-close{
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: transparent;
+    border: 2px solid #7a1fff;
+    color: #c9a7ff;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .25s, color .25s, transform .25s;
+    z-index: 310;
+  }
+  .video-close:hover{
+    background: #7a1fff;
+    color: #fff;
+    transform: rotate(90deg);
   }
 
   /* ================= МОДАЛЬНОЕ ОКНО ================= */
@@ -825,6 +901,29 @@
       max-width: 100%;
       max-height: 180px;
     }
+
+    /* Подвал на телефонах */
+    footer {
+      padding-bottom: 80px; /* Место под кнопку STYL */
+    }
+    .styl-btn {
+      width: 48px;
+      height: 48px;
+      bottom: 16px;
+      right: 16px;
+      top: auto;
+      transform: none;
+    }
+    .styl-btn:hover, .styl-btn:active {
+      transform: none;
+    }
+    .video-close {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      top: 12px;
+      right: 12px;
+    }
   }
 </style>
 </head>
@@ -939,6 +1038,11 @@
     <span class="discord">discord : b.r.a.h.</span>
   </div>
   <div class="ooo">OOO JJS BRATVA</div>
+  
+  <!-- Кнопка STYL перенесена сюда, в правый угол подвала -->
+  <button class="styl-btn" id="stylBtn" aria-label="STYL">
+    <img src="images/STYL.png" alt="STYL">
+  </button>
 </footer>
 
 <!-- ================= МОДАЛЬНОЕ ОКНО ================= -->
@@ -969,6 +1073,12 @@
   <img id="lightboxImg" src="" alt="">
 </div>
 
+<!-- ================= ВИДЕО МОДАЛ ================= -->
+<div class="video-modal" id="videoModal">
+  <button class="video-close" id="videoClose" aria-label="Закрыть">&times;</button>
+  <video id="cocosVideo" src="videos/COCOSVID.mov" controls playsinline></video>
+</div>
+
 <script>
 /* ============================================================
    1. ДАННЫЕ ЛЮДЕЙ
@@ -978,7 +1088,8 @@ const people = [
     nick: 'Лиф',
     avatar: 'images/leaf.png',
     images: ['images/LEAF1.png', 'images/LEAF2.jpg', 'images/LEAF3.png',
-             'images/LEAF4.png', 'images/LEAF5.png', 'images/LEAF6.png']
+             'images/LEAF4.png', 'images/LEAF5.png', 'images/LEAF6.png',
+             'images/LEAF7.png', 'images/LEAF8.png']
   },
   {
     nick: 'Шрек',
@@ -991,7 +1102,7 @@ const people = [
     nick: 'Шмелько',
     avatar: 'images/SMELKO.png',
     images: ['images/SMELKO1.png', 'images/SMELKO2.png', 'images/SMELKO3.png',
-             'images/SMELKO4.png', 'images/SMELKO5.png']
+             'images/SMELKO4.png', 'images/SMELKO5.png', 'images/SMELKO6.png']
   },
   {
     nick: 'Музан',
@@ -1001,7 +1112,7 @@ const people = [
       'images/MUZAN5.png', 'images/MUZAN6.png', 'images/MUZAN7.png', 'images/MUZAN8.png',
       'images/MUZAN9.png', 'images/MUZAN10.png', 'images/MUZAN11.png', 'images/MUZAN12.png',
       'images/MUZAN13.png', 'images/MUZAN14.png', 'images/MUZAN15.png', 'images/MUZAN16.png',
-      'images/MUZAN17.png'
+      'images/MUZAN17.png', 'images/MUZAN18.png'
     ]
   },
   {
@@ -1385,6 +1496,8 @@ document.addEventListener('keydown', (e) => {
     closeLightbox();
   } else if (modal.classList.contains('open')) {
     closeModal();
+  } else if (videoModal.classList.contains('open')) {
+    closeVideoModal();
   }
 });
 
@@ -1396,6 +1509,7 @@ document.querySelectorAll('.zoomable').forEach((img) => {
    7. ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
    ============================================================ */
 const menuBtns = document.querySelectorAll('.side-btn');
+const stylBtn  = document.getElementById('stylBtn');
 
 function showPage(name){
   document.querySelectorAll('.page').forEach((p) => {
@@ -1404,6 +1518,11 @@ function showPage(name){
   menuBtns.forEach((b) => {
     b.classList.toggle('active', b.dataset.page === name);
   });
+
+  // Показываем кнопку STYL только на главной странице
+  if (stylBtn) {
+    stylBtn.style.display = (name === 'home') ? 'flex' : 'none';
+  }
 }
 
 menuBtns.forEach((btn) => {
@@ -1579,6 +1698,36 @@ skipBtn.addEventListener('click', () => {
   if (!running || !finishHandler) return;
   cancelAnimationFrame(animId);
   finishHandler();
+});
+
+/* ============================================================
+   11. ВИДЕО COCOSVID (КНОПКА STYL)
+   ============================================================ */
+const videoModal = document.getElementById('videoModal');
+const cocosVideo = document.getElementById('cocosVideo');
+const videoClose = document.getElementById('videoClose');
+
+function openVideoModal(){
+  videoModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  try {
+    cocosVideo.currentTime = 0;
+    const p = cocosVideo.play();
+    if (p && p.catch) p.catch(() => {});
+  } catch(e) {}
+}
+
+function closeVideoModal(){
+  videoModal.classList.remove('open');
+  document.body.style.overflow = '';
+  cocosVideo.pause();
+}
+
+stylBtn.addEventListener('click', openVideoModal);
+videoClose.addEventListener('click', closeVideoModal);
+
+videoModal.addEventListener('click', (e) => {
+  if (e.target === videoModal) closeVideoModal();
 });
 </script>
 </body>
