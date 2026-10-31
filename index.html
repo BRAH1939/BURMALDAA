@@ -184,6 +184,8 @@
 
   /* ================= МНЕ ПОВЕЗЁТ ================= */
   .luck-box{
+    width: 100%; /* Гарантирует, что блок не будет шире контейнера */
+    overflow: hidden; /* Защита от вылезания дочерних элементов */
     max-width: 780px;
     background: linear-gradient(180deg, #17002e, #05000a);
     border: 2px solid #7a1fff;
@@ -304,6 +306,8 @@
     font-size: 21px;
     color: #ffd24a;
     line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   .phrase.pop{ animation: pop .35s ease; }
   @keyframes pop{
@@ -710,10 +714,10 @@
       gap: 12px;
     }
     .card:hover .avatar-wrap {
-      transform: none; /* Отключаем залипание ховера на телефонах */
+      transform: none;
     }
     .card:active .avatar-wrap {
-      transform: scale(0.95); /* Эффект нажатия */
+      transform: scale(0.95);
     }
     .card .nick {
       font-size: 13px;
@@ -775,6 +779,54 @@
 
     .discord-row {
       flex-direction: column;
+    }
+
+    /* --- ИСПРАВЛЕНИЕ ВКЛАДКИ "МНЕ ПОВЕЗЁТ" ДЛЯ ТЕЛЕФОНОВ --- */
+    .luck-box {
+      padding: 16px 10px 20px;
+      width: 100%;
+    }
+    
+    .case-viewport {
+      height: 90px; /* Уменьшаем высоту рулетки */
+    }
+    .case-item {
+      flex: 0 0 90px; /* Уменьшаем ширину плашек, чтобы больше влезало */
+      font-size: 10px;
+      padding: 4px;
+      gap: 6px;
+    }
+    
+    .btn-row {
+      flex-direction: column; /* Кнопки встают друг под другом */
+      gap: 8px;
+      width: 100%;
+    }
+    
+    .luck-btn {
+      width: 100%; /* Кнопка на всю ширину */
+      padding: 14px 10px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .skip-btn {
+      width: 100%;
+      padding: 12px 10px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+    
+    .phrase {
+      margin-top: 18px;
+      font-size: 15px;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    .phrase-img {
+      max-width: 100%;
+      max-height: 180px;
     }
   }
 </style>
@@ -1139,7 +1191,7 @@ verityBtn.addEventListener('click', () => {
 });
 
 /* ============================================================
-   6. ЛАЙТБОКС С ЗУМОМ (МЫШЬ + ТАЧ)
+   6. ЛАЙТБОКС С ЗУМОМ
    ============================================================ */
 const lightbox      = document.getElementById('lightbox');
 const lightboxImg   = document.getElementById('lightboxImg');
@@ -1151,12 +1203,10 @@ const lbReset       = document.getElementById('lbReset');
 let lbScale = 1;
 let lbTranslateX = 0;
 let lbTranslateY = 0;
-
 let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 
-/* Тач-переменные */
 let initialTouchDist = 0;
 let initialScale = 1;
 let lastTap = 0;
@@ -1200,7 +1250,7 @@ lightbox.addEventListener('wheel', (e) => {
   updateLightboxTransform();
 }, { passive: false });
 
-/* --- МЫШЬ (Перетаскивание) --- */
+/* Мышь */
 lightboxImg.addEventListener('mousedown', (e) => {
   e.preventDefault();
   isDragging = true;
@@ -1223,7 +1273,7 @@ window.addEventListener('mouseup', () => {
   }
 });
 
-/* --- ТАЧ (Перетаскивание и Пинч-зум) --- */
+/* Тач */
 lightboxImg.addEventListener('touchstart', (e) => {
   if (e.touches.length === 1) {
     isDragging = true;
@@ -1242,13 +1292,11 @@ lightboxImg.addEventListener('touchstart', (e) => {
 
 lightboxImg.addEventListener('touchmove', (e) => {
   if (e.touches.length === 1 && isDragging) {
-    // Перетаскивание одним пальцем
-    e.preventDefault(); // Предотвращаем скролл страницы
+    e.preventDefault();
     lbTranslateX = e.touches[0].clientX - dragStartX;
     lbTranslateY = e.touches[0].clientY - dragStartY;
     updateLightboxTransform();
   } else if (e.touches.length === 2) {
-    // Масштабирование двумя пальцами
     e.preventDefault();
     const currentDist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
@@ -1270,21 +1318,20 @@ lightboxImg.addEventListener('touchend', (e) => {
     initialTouchDist = 0;
   }
 
-  // Двойной тап (быстрый зум)
   const currentTime = new Date().getTime();
   const tapLength = currentTime - lastTap;
   if (tapLength < 300 && tapLength > 0 && e.touches.length === 0) {
     if (lbScale > 1) {
-      resetLightboxTransform(); // Если уже увеличено — сбрасываем
+      resetLightboxTransform();
     } else {
-      lbScale = 2.5; // Иначе приближаем
+      lbScale = 2.5;
       updateLightboxTransform();
     }
   }
   lastTap = currentTime;
 });
 
-/* Кнопки зума */
+/* Кнопки */
 lbZoomIn.addEventListener('click', () => {
   lbScale = Math.min(lbScale + 0.5, 5);
   updateLightboxTransform();
