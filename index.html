@@ -430,7 +430,7 @@
     border-top: 2px solid #7a1fff;
     text-align: center;
     padding: 24px 20px 26px;
-    position: relative; /* Чтобы позиционировать кнопку STYL внутри подвала */
+    position: relative;
   }
   .discord-row{
     display: inline-flex;
@@ -456,7 +456,7 @@
     text-transform: uppercase;
   }
 
-  /* ================= КНОПКА STYL (В ПРАВОМ УГЛУ ПОДВАЛА) ================= */
+  /* ================= КНОПКА STYL ================= */
   .styl-btn{
     position: absolute;
     right: 24px;
@@ -688,6 +688,29 @@
   }
   .lb-btn:hover{ background: #7a1fff; color: #fff; }
 
+  /* Стрелки для переключения изображений */
+  .lb-arrow{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(20, 0, 36, 0.8);
+    border: 2px solid #7a1fff;
+    color: #c9a7ff;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 220;
+    transition: background .2s, color .2s;
+  }
+  .lb-arrow:hover{ background: #7a1fff; color: #fff; }
+  .lb-prev{ left: 20px; }
+  .lb-next{ right: 20px; }
+
   .lightbox-close{
     position: absolute;
     top: 18px;
@@ -904,7 +927,7 @@
 
     /* Подвал на телефонах */
     footer {
-      padding-bottom: 80px; /* Место под кнопку STYL */
+      padding-bottom: 80px;
     }
     .styl-btn {
       width: 48px;
@@ -924,6 +947,15 @@
       top: 12px;
       right: 12px;
     }
+
+    /* Стрелки в лайтбоксе на телефонах */
+    .lb-arrow {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
   }
 </style>
 </head>
@@ -1039,7 +1071,7 @@
   </div>
   <div class="ooo">OOO JJS BRATVA</div>
   
-  <!-- Кнопка STYL перенесена сюда, в правый угол подвала -->
+  <!-- Кнопка STYL -->
   <button class="styl-btn" id="stylBtn" aria-label="STYL">
     <img src="images/STYL.png" alt="STYL">
   </button>
@@ -1064,6 +1096,9 @@
 
 <!-- ================= ЛАЙТБОКС ================= -->
 <div class="lightbox" id="lightbox">
+  <button class="lb-arrow lb-prev" id="lbPrev" aria-label="Предыдущее изображение" style="display:none;">&#10094;</button>
+  <button class="lb-arrow lb-next" id="lbNext" aria-label="Следующее изображение" style="display:none;">&#10095;</button>
+
   <div class="lightbox-controls">
     <button class="lb-btn" id="lbZoomIn" title="Приблизить">+</button>
     <button class="lb-btn" id="lbZoomOut" title="Отдалить">−</button>
@@ -1096,13 +1131,15 @@ const people = [
     avatar: 'images/SHREK.png',
     aliases: ['куколд', 'каблук'],
     images: ['images/SHREK1.png', 'images/SHREK2.png', 'images/SHREK3.png',
-             'images/SHREK4.png', 'images/SHREK5.png']
+             'images/SHREK4.png', 'images/SHREK5.png',
+             'images/SHREK7.png', 'images/SHREK8.png']
   },
   {
     nick: 'Шмелько',
     avatar: 'images/SMELKO.png',
     images: ['images/SMELKO1.png', 'images/SMELKO2.png', 'images/SMELKO3.png',
-             'images/SMELKO4.png', 'images/SMELKO5.png', 'images/SMELKO6.png']
+             'images/SMELKO4.png', 'images/SMELKO5.png', 'images/SMELKO6.png',
+             'images/SMELKO7.png']
   },
   {
     nick: 'Музан',
@@ -1291,7 +1328,7 @@ function openModal(person){
     note.textContent = person.note;
     modalImages.appendChild(note);
   } else {
-    person.images.forEach((src) => {
+    person.images.forEach((src, idx) => {
       const img = document.createElement('img');
       img.src = src;
       img.alt = person.nick;
@@ -1299,7 +1336,7 @@ function openModal(person){
       img.onerror = () => makeFallback(img, person.nick.charAt(0));
       img.addEventListener('click', (e) => {
         e.stopPropagation();
-        openLightbox(src);
+        openLightbox(src, person.images, idx);
       });
       modalImages.appendChild(img);
     });
@@ -1337,7 +1374,7 @@ verityBtn.addEventListener('click', () => {
 });
 
 /* ============================================================
-   6. ЛАЙТБОКС С ЗУМОМ
+   6. ЛАЙТБОКС С ЗУМОМ И СТРЕЛКАМИ
    ============================================================ */
 const lightbox      = document.getElementById('lightbox');
 const lightboxImg   = document.getElementById('lightboxImg');
@@ -1345,6 +1382,8 @@ const lightboxClose = document.getElementById('lightboxClose');
 const lbZoomIn      = document.getElementById('lbZoomIn');
 const lbZoomOut     = document.getElementById('lbZoomOut');
 const lbReset       = document.getElementById('lbReset');
+const lbPrev        = document.getElementById('lbPrev');
+const lbNext        = document.getElementById('lbNext');
 
 let lbScale = 1;
 let lbTranslateX = 0;
@@ -1357,6 +1396,9 @@ let initialTouchDist = 0;
 let initialScale = 1;
 let lastTap = 0;
 
+let lbImages = null;
+let lbIndex = 0;
+
 function updateLightboxTransform(){
   lightboxImg.style.transform = `translate(${lbTranslateX}px, ${lbTranslateY}px) scale(${lbScale})`;
 }
@@ -1368,10 +1410,31 @@ function resetLightboxTransform(){
   updateLightboxTransform();
 }
 
-function openLightbox(src){
+function updateArrows(){
+  if (lbImages && lbImages.length > 1) {
+    lbPrev.style.display = 'flex';
+    lbNext.style.display = 'flex';
+  } else {
+    lbPrev.style.display = 'none';
+    lbNext.style.display = 'none';
+  }
+}
+
+function showImageByIndex(index) {
+  if (!lbImages || lbImages.length === 0) return;
+  lbIndex = (index + lbImages.length) % lbImages.length;
+  lightboxImg.src = lbImages[lbIndex];
+  resetLightboxTransform();
+  lightboxImg.onerror = () => makeFallback(lightboxImg, 'X');
+}
+
+function openLightbox(src, images = null, index = 0){
+  lbImages = images;
+  lbIndex = index;
   lightboxImg.src = src;
   lightboxImg.onerror = () => makeFallback(lightboxImg, 'X');
   resetLightboxTransform();
+  updateArrows();
   lightbox.classList.add('open');
 }
 
@@ -1379,12 +1442,25 @@ function closeLightbox(){
   lightbox.classList.remove('open');
   lightboxImg.src = '';
   resetLightboxTransform();
+  lbImages = null;
+  updateArrows();
 }
 
 lightboxClose.addEventListener('click', closeLightbox);
 
 lightbox.addEventListener('click', (e) => {
   if (e.target === lightbox) closeLightbox();
+});
+
+/* Стрелки */
+lbPrev.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showImageByIndex(lbIndex - 1);
+});
+
+lbNext.addEventListener('click', (e) => {
+  e.stopPropagation();
+  showImageByIndex(lbIndex + 1);
 });
 
 /* Колесико мыши */
@@ -1477,7 +1553,7 @@ lightboxImg.addEventListener('touchend', (e) => {
   lastTap = currentTime;
 });
 
-/* Кнопки */
+/* Кнопки зума */
 lbZoomIn.addEventListener('click', () => {
   lbScale = Math.min(lbScale + 0.5, 5);
   updateLightboxTransform();
@@ -1491,13 +1567,17 @@ lbZoomOut.addEventListener('click', () => {
 lbReset.addEventListener('click', resetLightboxTransform);
 
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  if (lightbox.classList.contains('open')) {
-    closeLightbox();
-  } else if (modal.classList.contains('open')) {
-    closeModal();
-  } else if (videoModal.classList.contains('open')) {
-    closeVideoModal();
+  if (e.key === 'Escape') {
+    if (lightbox.classList.contains('open')) {
+      closeLightbox();
+    } else if (modal.classList.contains('open')) {
+      closeModal();
+    } else if (videoModal.classList.contains('open')) {
+      closeVideoModal();
+    }
+  } else if (lightbox.classList.contains('open') && lbImages && lbImages.length > 1) {
+    if (e.key === 'ArrowLeft') showImageByIndex(lbIndex - 1);
+    if (e.key === 'ArrowRight') showImageByIndex(lbIndex + 1);
   }
 });
 
