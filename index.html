@@ -564,7 +564,7 @@
     justify-content: center;
     padding: 20px;
     z-index: 200;
-    cursor: zoom-out;
+    overflow: hidden;
   }
   .lightbox.open{ display: flex; animation: fade .2s ease; }
   .lightbox img{
@@ -573,8 +573,39 @@
     object-fit: contain;
     border-radius: 10px;
     border: 2px solid #7a1fff;
-    cursor: default;
+    cursor: grab;
+    transition: transform 0.1s ease-out;
+    user-select: none;
+    -webkit-user-drag: none;
   }
+  .lightbox img:active{ cursor: grabbing; }
+
+  .lightbox-controls{
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 210;
+  }
+  .lb-btn{
+    background: rgba(20, 0, 36, 0.8);
+    border: 2px solid #7a1fff;
+    color: #c9a7ff;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s, color .2s;
+  }
+  .lb-btn:hover{ background: #7a1fff; color: #fff; }
+
   .lightbox-close{
     position: absolute;
     top: 18px;
@@ -589,6 +620,7 @@
     line-height: 1;
     cursor: pointer;
     transition: background .25s, color .25s, transform .25s;
+    z-index: 210;
   }
   .lightbox-close:hover{ background: #7a1fff; color: #fff; transform: rotate(90deg); }
 
@@ -746,7 +778,7 @@
 
     <div class="verity-row" id="verityRow" hidden>
       <button class="verity-btn" id="verityBtn" type="button">
-        <img src="images/verity.png" alt="verity">
+        <img src="images/Verity.png" alt="verity">
       </button>
     </div>
   </div>
@@ -754,6 +786,11 @@
 
 <!-- ================= ЛАЙТБОКС ================= -->
 <div class="lightbox" id="lightbox">
+  <div class="lightbox-controls">
+    <button class="lb-btn" id="lbZoomIn" title="Приблизить">+</button>
+    <button class="lb-btn" id="lbZoomOut" title="Отдалить">−</button>
+    <button class="lb-btn" id="lbReset" title="Сбросить">⟲</button>
+  </div>
   <button class="lightbox-close" id="lightboxClose" aria-label="Закрыть">&times;</button>
   <img id="lightboxImg" src="" alt="">
 </div>
@@ -761,7 +798,6 @@
 <script>
 /* ============================================================
    1. ДАННЫЕ ЛЮДЕЙ
-   aliases — синонимы для поиска
    ============================================================ */
 const people = [
   {
@@ -876,7 +912,7 @@ document.querySelectorAll('.partner-img').forEach((img) => {
   img.onerror = () => makeFallback(img, 'И');
 });
 
-/* verity.png */
+/* Verity.png */
 const verityRow = document.getElementById('verityRow');
 const verityBtn = document.getElementById('verityBtn');
 const verityImg = verityBtn.querySelector('img');
@@ -977,27 +1013,96 @@ verityBtn.addEventListener('click', () => {
 });
 
 /* ============================================================
-   6. ЛАЙТБОКС
+   6. ЛАЙТБОКС С ЗУМОМ
    ============================================================ */
 const lightbox      = document.getElementById('lightbox');
 const lightboxImg   = document.getElementById('lightboxImg');
 const lightboxClose = document.getElementById('lightboxClose');
+const lbZoomIn      = document.getElementById('lbZoomIn');
+const lbZoomOut     = document.getElementById('lbZoomOut');
+const lbReset       = document.getElementById('lbReset');
+
+let lbScale = 1;
+let lbTranslateX = 0;
+let lbTranslateY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
+function updateLightboxTransform(){
+  lightboxImg.style.transform = `translate(${lbTranslateX}px, ${lbTranslateY}px) scale(${lbScale})`;
+}
+
+function resetLightboxTransform(){
+  lbScale = 1;
+  lbTranslateX = 0;
+  lbTranslateY = 0;
+  updateLightboxTransform();
+}
 
 function openLightbox(src){
   lightboxImg.src = src;
   lightboxImg.onerror = () => makeFallback(lightboxImg, 'X');
+  resetLightboxTransform();
   lightbox.classList.add('open');
 }
 
 function closeLightbox(){
   lightbox.classList.remove('open');
   lightboxImg.src = '';
+  resetLightboxTransform();
 }
 
 lightboxClose.addEventListener('click', closeLightbox);
+
 lightbox.addEventListener('click', (e) => {
   if (e.target === lightbox) closeLightbox();
 });
+
+/* Колесико мыши */
+lightbox.addEventListener('wheel', (e) => {
+  if (!lightbox.classList.contains('open')) return;
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.15 : 0.15;
+  lbScale = Math.min(Math.max(0.5, lbScale + delta), 5);
+  updateLightboxTransform();
+}, { passive: false });
+
+/* Перетаскивание */
+lightboxImg.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  isDragging = true;
+  dragStartX = e.clientX - lbTranslateX;
+  dragStartY = e.clientY - lbTranslateY;
+  lightboxImg.style.transition = 'none';
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  lbTranslateX = e.clientX - dragStartX;
+  lbTranslateY = e.clientY - dragStartY;
+  updateLightboxTransform();
+});
+
+window.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    lightboxImg.style.transition = 'transform 0.1s ease-out';
+  }
+});
+
+/* Кнопки */
+lbZoomIn.addEventListener('click', () => {
+  lbScale = Math.min(lbScale + 0.5, 5);
+  updateLightboxTransform();
+});
+
+lbZoomOut.addEventListener('click', () => {
+  lbScale = Math.max(lbScale - 0.5, 0.5);
+  updateLightboxTransform();
+});
+
+lbReset.addEventListener('click', resetLightboxTransform);
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
