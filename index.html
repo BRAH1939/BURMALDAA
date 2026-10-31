@@ -184,8 +184,8 @@
 
   /* ================= МНЕ ПОВЕЗЁТ ================= */
   .luck-box{
-    width: 100%; /* Гарантирует, что блок не будет шире контейнера */
-    overflow: hidden; /* Защита от вылезания дочерних элементов */
+    width: 100%;
+    overflow: hidden;
     max-width: 780px;
     background: linear-gradient(180deg, #17002e, #05000a);
     border: 2px solid #7a1fff;
@@ -582,7 +582,7 @@
     transition: transform 0.1s ease-out;
     user-select: none;
     -webkit-user-drag: none;
-    touch-action: none; /* Отключает стандартный скролл/зум браузера на картинке */
+    touch-action: none;
   }
   .lightbox img:active{ cursor: grabbing; }
 
@@ -708,7 +708,6 @@
       transform: none;
     }
 
-    /* Аватарки по 2 в ряд */
     .grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
@@ -742,7 +741,6 @@
       font-size: 18px;
     }
 
-    /* Кнопки лайтбокса под большие пальцы */
     .lightbox-controls {
       bottom: 15px;
       gap: 8px;
@@ -781,30 +779,29 @@
       flex-direction: column;
     }
 
-    /* --- ИСПРАВЛЕНИЕ ВКЛАДКИ "МНЕ ПОВЕЗЁТ" ДЛЯ ТЕЛЕФОНОВ --- */
     .luck-box {
       padding: 16px 10px 20px;
       width: 100%;
     }
     
     .case-viewport {
-      height: 90px; /* Уменьшаем высоту рулетки */
+      height: 90px;
     }
     .case-item {
-      flex: 0 0 90px; /* Уменьшаем ширину плашек, чтобы больше влезало */
+      flex: 0 0 90px;
       font-size: 10px;
       padding: 4px;
       gap: 6px;
     }
     
     .btn-row {
-      flex-direction: column; /* Кнопки встают друг под другом */
+      flex-direction: column;
       gap: 8px;
       width: 100%;
     }
     
     .luck-btn {
-      width: 100%; /* Кнопка на всю ширину */
+      width: 100%;
       padding: 14px 10px;
       font-size: 14px;
       box-sizing: border-box;
@@ -833,7 +830,6 @@
 </head>
 <body>
 
-<!-- Аудио из папки sounds -->
 <audio id="sndMenu"  src="sounds/menu.mp3"     preload="auto"></audio>
 <audio id="sndClick" src="sounds/click.mp3"    preload="auto"></audio>
 <audio id="sndDice"  src="sounds/diceroll.mp3" preload="auto"></audio>
@@ -1000,13 +996,18 @@ const people = [
   {
     nick: 'Музан',
     avatar: 'images/MUZZON.png',
-    images: ['images/MUZAN1.png', 'images/MUZAN2.png', 'images/MUZAN3.png',
-             'images/MUZAN4.png']
+    images: [
+      'images/MUZAN1.png', 'images/MUZAN2.png', 'images/MUZAN3.png', 'images/MUZAN4.png',
+      'images/MUZAN5.png', 'images/MUZAN6.png', 'images/MUZAN7.png', 'images/MUZAN8.png',
+      'images/MUZAN9.png', 'images/MUZAN10.png', 'images/MUZAN11.png', 'images/MUZAN12.png',
+      'images/MUZAN13.png', 'images/MUZAN14.png', 'images/MUZAN15.png', 'images/MUZAN16.png',
+      'images/MUZAN17.png'
+    ]
   },
   {
     nick: 'Kit',
     avatar: 'images/KIT.png',
-    images: ['images/KIT1.png', 'images/KIT2.png', 'images/KIT3.png', 'images/KIT4.png']
+    images: ['images/KIT1.png', 'images/KIT2.png', 'images/KIT3.png', 'images/KIT4.png', 'images/KIT5.png']
   },
   {
     nick: 'Мекантус',
@@ -1023,22 +1024,51 @@ const people = [
   {
     nick: 'Дадакич',
     avatar: 'images/DADAKICH.png',
-    images: ['images/DADAKICH1.png', 'images/DADAKICH2.png', 'images/DADAKICH3.png',
-             'images/DADAKICH4.png', 'images/DADAKICH5.png', 'images/DADAKICH6.png']
+    images: [
+      'images/DADAKICH1.png', 'images/DADAKICH2.png', 'images/DADAKICH3.png',
+      'images/DADAKICH4.png', 'images/DADAKICH5.png', 'images/DADAKICH6.png',
+      'images/DADAKICH7.png', 'images/DADAKICH8.png', 'images/DADAKICH9.png',
+      'images/DADAKICH10.png', 'images/DADAKICH11.png'
+    ]
   },
   {
     nick: 'Кокос',
     avatar: 'images/COCOS.png',
     aliases: ['куколд', 'каблук'],
-    images: ['images/COCOS1.png', 'images/COCOS2.png', 'images/COCOS3.png',
-             'images/COCOS4.png', 'images/COCOS5.png', 'images/COCOS6.png',
-             'images/COCOS7.png', 'images/COCOS8.png', 'images/COCOS9.png',
-             'images/COCOS10.png']
+    images: [
+      'images/COCOS1.png', 'images/COCOS2.png', 'images/COCOS3.png',
+      'images/COCOS4.png', 'images/COCOS5.png', 'images/COCOS6.png',
+      'images/COCOS7.png', 'images/COCOS8.png', 'images/COCOS9.png',
+      'images/COCOS10.png', 'images/COCOS11.png', 'images/COCOS12.png',
+      'images/COCOS13.png', 'images/COCOS14.png', 'images/COCOS15.png'
+    ]
   },
   {
     nick: 'Махи',
     avatar: 'images/MAHI.png',
-    images: ['images/MAHI1.png', 'images/MAHI2.png']
+    images: ['images/MAHI1.png', 'images/MAHI2.png', 'images/MAHI3.png']
+  },
+  {
+    nick: 'Пешка',
+    avatar: 'images/PAWN.png',
+    images: ['images/PAWN1.png', 'images/PAWN2.png', 'images/PAWN3.png',
+             'images/PAWN4.png', 'images/PAWN5.png', 'images/PAWN6.png',
+             'images/PAWN7.png']
+  },
+  {
+    nick: 'Кушка',
+    avatar: 'images/KUS.png',
+    images: ['images/KUS1.png', 'images/KUS2.png', 'images/KUS3.png', 'images/KUS4.png']
+  },
+  {
+    nick: 'Сигматрах',
+    avatar: 'images/SIG.png',
+    images: ['images/SIG1.png']
+  },
+  {
+    nick: 'Морозко',
+    avatar: 'images/MOR.png',
+    images: ['images/MOR1.png']
   }
 ];
 
