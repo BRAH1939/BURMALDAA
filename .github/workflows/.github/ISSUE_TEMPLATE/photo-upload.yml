@@ -1,0 +1,36 @@
+name: Отправить фотографию на сайт BURMALDAA
+description: Прикрепи фотографию — она будет переслана в Discord.
+title: "[ФОТО] Новая фотография"
+labels: ["photo-upload"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Как прикрепить фото
+        Перетащи изображение в поле «Ссылка на фотографию» ниже или вставь его из буфера обмена. Дождись загрузки вложения GitHub, чтобы в поле появилась ссылка.
+
+        **Важно:** заявка и вложение могут быть публично видны в репозитории.
+  - type: input
+    id: nickname
+    attributes:
+      label: Твой ник (необязательно)
+      description: Этот ник будет указан в сообщении Discord.
+      placeholder: Например, BRAH
+    validations:
+      required: false
+  - type: textarea
+    id: photo
+    attributes:
+      label: Ссылка на фотографию
+      description: Перетащи сюда JPG, PNG, GIF или WEBP до 8 МБ. После загрузки GitHub вставит ссылку на вложение.
+      placeholder: Вставь или перетащи изображение в это поле
+      render: markdown
+    validations:
+      required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Подтверждение
+      options:
+        - label: Я имею право отправлять эту фотографию и согласен(на), что она будет передана в Discord.
+          required: true
