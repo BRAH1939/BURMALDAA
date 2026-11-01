@@ -519,6 +519,7 @@
     animation: fade .25s ease;
   }
   .video-modal video{
+    width: min(1100px, 96vw);
     max-width: 96vw;
     max-height: 88vh;
     border-radius: 12px;
@@ -1239,7 +1240,7 @@
 <!-- ================= ВИДЕО МОДАЛ ================= -->
 <div class="video-modal" id="videoModal">
   <button class="video-close" id="videoClose" aria-label="Закрыть">&times;</button>
-  <video id="cocosVideo" src="videos/COCOSVID.mov" controls playsinline></video>
+  <video id="cocosVideo" src="videos/COCOSVID.mov" controls playsinline preload="metadata"></video>
 </div>
 
 <script>
@@ -1253,7 +1254,7 @@ const people = [
     images: ['images/LEAF1.png', 'images/LEAF2.jpg', 'images/LEAF3.png',
              'images/LEAF4.png', 'images/LEAF5.png', 'images/LEAF6.png',
              'images/LEAF7.png', 'images/LEAF8.png', 'images/LEAF9.png',
-             'images/LEAF10.png', 'images/LEAF11.png']
+             'images/LEAF10.png', 'images/LEAF11.png', 'images/LEAF12.png']
   },
   {
     nick: 'Шрек',
@@ -1261,7 +1262,8 @@ const people = [
     aliases: ['куколд', 'каблук'],
     images: ['images/SHREK1.png', 'images/SHREK2.png', 'images/SHREK3.png',
              'images/SHREK4.png', 'images/SHREK5.png',
-             'images/SHREK7.png', 'images/SHREK8.png', 'images/SHREK9.png']
+             'images/SHREK7.png', 'images/SHREK8.png', 'images/SHREK9.png',
+             'images/SHREK12.png', 'images/SHREK13.png', 'images/SHREK14.png']
   },
   {
     nick: 'Шмелько',
@@ -1351,8 +1353,13 @@ const people = [
   {
     nick: 'Берибер',
     avatar: 'images/BER.png',
-    images: ['images/BER1.png', 'images/BER2.png', 'images/BER3.png']
-  }
+    images: ['images/BER1.png', 'images/BER2.png', 'images/BER3.png',
+             'images/BER4.png', 'images/BER5.png', 'images/BER6.png']
+  },
+  { nick: 'конорти', avatar: 'images/CON.png', images: ['images/CON1.png'] },
+  { nick: 'ранкан', avatar: 'images/RAN.png', images: ['images/RAN1.png', 'images/RAN2.png'] },
+  { nick: 'балбес', avatar: 'images/BAL.png', images: ['images/BAL1.png'] },
+  { nick: 'асмодеус', avatar: 'images/ASM.png', images: ['images/ASM1.png'] }
 ];
 
 const brahPerson = {
@@ -1362,7 +1369,8 @@ const brahPerson = {
     'images/BRAH2.png', 'images/BRAH3.png', 'images/BRAH4.png',
     'images/BRAH5.png', 'images/BRAH6.png', 'images/BRAH7.png',
     'images/BRAH8.png', 'images/BRAH9.png', 'images/BRAH10.png',
-    'images/BRAH11.png', 'images/BRAH12.png'
+    'images/BRAH11.png', 'images/BRAH12.png',
+    'images/BRAH13.png', 'images/BRAH14.png', 'images/BRAH15.png'
   ],
   videos: ['videos/BRAH13.mp4', 'videos/BRAH14.mp4']
 };
@@ -1513,17 +1521,13 @@ function openModal(person){
       person.videos.forEach((src) => {
         const video = document.createElement('video');
         video.src = src;
-        // Убираем стандартные контролы, чтобы не было интерфейса
+        // По нажатию открываем крупный видеоплеер с контролами.
         video.controls = false;
         video.playsInline = true;
-        // Обработчик клика для воспроизведения/паузы
+        video.preload = 'metadata';
         video.addEventListener('click', (e) => {
-          e.stopPropagation(); // чтобы не закрылось модальное окно
-          if (video.paused) {
-            video.play();
-          } else {
-            video.pause();
-          }
+          e.stopPropagation();
+          openVideoModal(src);
         });
         modalImages.appendChild(video);
       });
@@ -2010,7 +2014,17 @@ const videoModal = document.getElementById('videoModal');
 const cocosVideo = document.getElementById('cocosVideo');
 const videoClose = document.getElementById('videoClose');
 
-function openVideoModal(){
+function openVideoModal(src){
+  if (src && cocosVideo.getAttribute('src') !== src) {
+    cocosVideo.pause();
+    cocosVideo.src = src;
+    cocosVideo.load();
+  } else if (!src && cocosVideo.getAttribute('src') !== 'videos/COCOSVID.mov') {
+    cocosVideo.pause();
+    cocosVideo.src = 'videos/COCOSVID.mov';
+    cocosVideo.load();
+  }
+  cocosVideo.controls = true;
   videoModal.classList.add('open');
   document.body.style.overflow = 'hidden';
   try {
@@ -2037,7 +2051,7 @@ videoModal.addEventListener('click', (e) => {
    АНОНИМНАЯ ОТПРАВКА ФОТОГРАФИЙ ЧЕРЕЗ CLOUDFLARE WORKER
    После публикации Worker замени адрес ниже на свой URL.
    ============================================================ */
-const PHOTO_UPLOAD_API = 'https://worker.kozukhargg.workers.dev/upload';
+const PHOTO_UPLOAD_API = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev/upload';
 const photoUploadForm = document.getElementById('photoUploadForm');
 
 if (photoUploadForm) {
