@@ -1015,6 +1015,30 @@
 
     .text-content { font-size: 14px; }
   }
+
+  /* ================= ОТПРАВКА ФОТО ЧЕРЕЗ GITHUB ================= */
+  .github-upload-box{
+    margin:20px 0; padding:22px;
+    background:linear-gradient(180deg,#17002e,#05000a);
+    border:2px solid #7a1fff; border-radius:16px;
+    color:#d9c6ff;
+  }
+  .github-upload-title{
+    margin:0 0 10px; color:#a35bff;
+    font-family:'Rubik Mono One',Impact,sans-serif; font-size:17px;
+  }
+  .github-upload-description{margin:0 0 16px;line-height:1.55}
+  .github-upload-button{
+    display:block; width:100%; box-sizing:border-box; padding:14px 18px;
+    border:2px solid #a35bff; border-radius:12px;
+    background:#7a1fff; color:#fff!important; text-align:center;
+    text-decoration:none!important; cursor:pointer;
+    font-family:'Rubik Mono One',Impact,sans-serif; font-size:13px;
+    transition:background .2s,transform .2s;
+  }
+  .github-upload-button:hover{background:#963fff;transform:translateY(-2px)}
+  .github-upload-note{margin:13px 0 0;color:#aa96c5;font-size:12px;line-height:1.5}
+
 </style>
 </head>
 <body>
@@ -1099,6 +1123,24 @@
               параметры газовых веществ
             </a>
           </div>
+        </div>
+
+        
+        <div class="github-upload-box reveal">
+          <h3 class="github-upload-title">Отправить фотографию</h3>
+          <p class="github-upload-description">
+            Нажми кнопку ниже, прикрепи изображение в форме GitHub и отправь заявку.
+            Фотография автоматически появится в нашем Discord.
+          </p>
+          <a class="github-upload-button"
+             href="https://github.com/brah1939/BURMALDAA/issues/new?template=photo-upload.yml"
+             target="_blank" rel="noopener noreferrer">
+            ОТПРАВИТЬ ФОТОГРАФИЮ
+          </a>
+          <p class="github-upload-note">
+            Для отправки потребуется аккаунт GitHub. Заявка и прикреплённое изображение
+            могут быть видны публично в репозитории.
+          </p>
         </div>
 
         <p><b>discord : b.r.a.h.</b></p>
