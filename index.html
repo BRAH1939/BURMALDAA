@@ -1017,27 +1017,21 @@
   }
 
   /* ================= ОТПРАВКА ФОТО ЧЕРЕЗ GITHUB ================= */
-  .github-upload-box{
-    margin:20px 0; padding:22px;
-    background:linear-gradient(180deg,#17002e,#05000a);
-    border:2px solid #7a1fff; border-radius:16px;
-    color:#d9c6ff;
-  }
-  .github-upload-title{
-    margin:0 0 10px; color:#a35bff;
-    font-family:'Rubik Mono One',Impact,sans-serif; font-size:17px;
-  }
-  .github-upload-description{margin:0 0 16px;line-height:1.55}
-  .github-upload-button{
-    display:block; width:100%; box-sizing:border-box; padding:14px 18px;
-    border:2px solid #a35bff; border-radius:12px;
-    background:#7a1fff; color:#fff!important; text-align:center;
-    text-decoration:none!important; cursor:pointer;
-    font-family:'Rubik Mono One',Impact,sans-serif; font-size:13px;
-    transition:background .2s,transform .2s;
-  }
-  .github-upload-button:hover{background:#963fff;transform:translateY(-2px)}
-  .github-upload-note{margin:13px 0 0;color:#aa96c5;font-size:12px;line-height:1.5}
+
+
+  /* Анонимная отправка фотографий через Worker */
+  .photo-upload-box{max-width:780px;margin-top:22px;padding:24px;background:linear-gradient(180deg,#17002e,#05000a);border:2px solid #7a1fff;border-radius:16px;color:#d9c6ff}
+  .photo-upload-title{margin:0 0 8px;color:#a35bff;font-family:'Rubik Mono One',Impact,sans-serif;font-size:17px}
+  .photo-upload-description{margin:0 0 18px;line-height:1.5}
+  .photo-upload-label{display:block;margin:14px 0 7px;color:#c9a7ff;font-size:14px}
+  #photoFile,#photoSender{display:block;width:100%;padding:12px;color:#fff;background:#0b0014;border:2px solid #3d0d6b;border-radius:10px;font:inherit}
+  #photoFile{font-size:14px}
+  #photoSender:focus,#photoFile:focus{outline:2px solid #a35bff;outline-offset:2px}
+  .photo-upload-submit{width:100%;margin-top:18px;padding:14px 18px;border:2px solid #a35bff;border-radius:12px;background:#7a1fff;color:#fff;cursor:pointer;font-family:'Rubik Mono One',Impact,sans-serif;font-size:13px;transition:background .2s,transform .2s}
+  .photo-upload-submit:hover{background:#963fff;transform:translateY(-2px)}
+  .photo-upload-submit:disabled{opacity:.55;cursor:wait;transform:none}
+  .photo-upload-status{min-height:22px;margin:12px 0 0;font-size:14px;overflow-wrap:anywhere}
+  .photo-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
 
 </style>
 </head>
@@ -1126,21 +1120,23 @@
         </div>
 
         
-        <div class="github-upload-box reveal">
-          <h3 class="github-upload-title">Отправить фотографию</h3>
-          <p class="github-upload-description">
-            Нажми кнопку ниже, прикрепи изображение в форме GitHub и отправь заявку.
-            Фотография автоматически появится в нашем Discord.
+        <div class="photo-upload-box reveal">
+          <h3 class="photo-upload-title">Отправить фотографию</h3>
+          <p class="photo-upload-description">
+            Выбери фотографию на телефоне или компьютере. Регистрация в GitHub или Discord не нужна.
           </p>
-          <a class="github-upload-button"
-             href="https://github.com/brah1939/BURMALDAA/issues/new?template=photo-upload.yml"
-             target="_blank" rel="noopener noreferrer">
-            ОТПРАВИТЬ ФОТОГРАФИЮ
-          </a>
-          <p class="github-upload-note">
-            Для отправки потребуется аккаунт GitHub. Заявка и прикреплённое изображение
-            могут быть видны публично в репозитории.
-          </p>
+          <form id="photoUploadForm">
+            <label class="photo-upload-label" for="photoFile">Фотография (JPG, PNG, WEBP или GIF)</label>
+            <input id="photoFile" name="photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
+            <label class="photo-upload-label" for="photoSender">Твой ник (необязательно)</label>
+            <input id="photoSender" name="sender" type="text" maxlength="50" placeholder="Например, BRAH">
+            <div class="photo-honeypot" aria-hidden="true">
+              <label for="website">Не заполняй это поле</label>
+              <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+            </div>
+            <button class="photo-upload-submit" id="photoUploadSubmit" type="submit">ОТПРАВИТЬ В DISCORD</button>
+            <p class="photo-upload-status" id="photoUploadStatus" role="status" aria-live="polite"></p>
+          </form>
         </div>
 
         <p><b>discord : b.r.a.h.</b></p>
@@ -2036,6 +2032,55 @@ videoClose.addEventListener('click', closeVideoModal);
 videoModal.addEventListener('click', (e) => {
   if (e.target === videoModal) closeVideoModal();
 });
+
+/* ============================================================
+   АНОНИМНАЯ ОТПРАВКА ФОТОГРАФИЙ ЧЕРЕЗ CLOUDFLARE WORKER
+   После публикации Worker замени адрес ниже на свой URL.
+   ============================================================ */
+const PHOTO_UPLOAD_API = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev/upload';
+const photoUploadForm = document.getElementById('photoUploadForm');
+
+if (photoUploadForm) {
+  photoUploadForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const fileInput = document.getElementById('photoFile');
+    const senderInput = document.getElementById('photoSender');
+    const status = document.getElementById('photoUploadStatus');
+    const submit = document.getElementById('photoUploadSubmit');
+    const honeypot = document.getElementById('website');
+    const file = fileInput.files[0];
+
+    if (honeypot.value) return;
+    if (!file) { status.textContent = 'Сначала выбери фотографию.'; return; }
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) { status.textContent = 'Поддерживаются JPG, PNG, WEBP и GIF.'; return; }
+    if (file.size > 8 * 1024 * 1024) { status.textContent = 'Файл слишком большой. Максимум — 8 МБ.'; return; }
+    if (PHOTO_UPLOAD_API.includes('YOUR-WORKER-NAME')) {
+      status.textContent = 'Отправка ещё не настроена: администратор должен подключить сервер.';
+      return;
+    }
+
+    const data = new FormData();
+    data.append('photo', file);
+    data.append('sender', senderInput.value.trim());
+    data.append('website', '');
+    submit.disabled = true;
+    status.textContent = 'Отправляем фотографию...';
+
+    try {
+      const response = await fetch(PHOTO_UPLOAD_API, { method: 'POST', body: data });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Не удалось отправить фотографию.');
+      status.textContent = 'Фотография успешно отправлена! Спасибо.';
+      photoUploadForm.reset();
+    } catch (error) {
+      status.textContent = error.message || 'Ошибка соединения. Попробуй позже.';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}
+
 </script>
 </body>
 </html>
