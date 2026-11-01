@@ -22,6 +22,17 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* ================= АНИМАЦИЯ ПОЯВЛЕНИЯ ================= */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+  }
+  .reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   /* ================= ШАПКА ================= */
   header{
     display: flex;
@@ -382,7 +393,10 @@
     font-size: 17px;
     color: #d9c6ff;
     line-height: 1.6;
+    cursor: pointer;
+    transition: color 0.2s;
   }
+  .correspondent:hover { color: #a35bff; }
   .correspondent span{
     color: #8a5bff;
     text-transform: uppercase;
@@ -392,7 +406,9 @@
     margin-bottom: 4px;
   }
   .correspondent b{ color: #fff; font-size: 18px; }
+  .correspondent:hover b { color: #a35bff; }
 
+  /* Восстановленный блок партнёров */
   .partner-wrap{
     display: flex;
     flex-direction: column;
@@ -419,7 +435,7 @@
   .partner-caption{
     font-family: 'Rubik Mono One', Impact, sans-serif;
     font-size: clamp(18px, 2.2vw, 30px);
-    color: #35d94a;
+    color: #35d94a; /* Вернули зелёный цвет */
     text-align: center;
     letter-spacing: 2px;
   }
@@ -446,7 +462,7 @@
     background: #16002b;
     border: 2px solid #7a1fff;
     padding: 2px;
-    cursor: pointer; /* Кликабельно */
+    cursor: pointer;
   }
   footer .discord{ font-size: 18px; color: #fff; letter-spacing: 1px; }
   footer .ooo{
@@ -603,6 +619,22 @@
   }
   .modal-images img:hover{ transform: scale(1.04); border-color: #a35bff; }
 
+  .modal-images video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 2px solid #2a0052;
+    background: #000;
+    outline: none;
+    cursor: pointer; /* Указывает, что можно нажать для воспроизведения */
+    transition: transform .25s, border-color .25s;
+  }
+  .modal-images video:hover {
+    transform: scale(1.02);
+    border-color: #a35bff;
+  }
+
   .modal-note{
     grid-column: 1 / -1;
     text-align: center;
@@ -635,6 +667,28 @@
   }
   .verity-btn:hover{ transform: scale(1.08); border-color: #a35bff; }
   .verity-btn img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ================= ТЕКСТОВОЕ МОДАЛЬНОЕ ОКНО ================= */
+  .text-modal-box {
+    max-height: 90vh;
+    max-width: 800px;
+    overflow-y: auto;
+  }
+  .text-content {
+    white-space: pre-wrap;
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #e3d3ff;
+    text-align: left;
+    padding: 10px 0;
+  }
+  .text-content p {
+    margin: 0 0 14px 0;
+  }
+  .text-content b {
+    color: #fff;
+  }
 
   /* ================= ЛАЙТБОКС ================= */
   .lightbox{
@@ -755,6 +809,8 @@
 
     .correspondent{ font-size: 15px; }
     .correspondent b{ font-size: 16px; }
+
+    .text-content { font-size: 15px; }
   }
 
   /* ================= АДАПТИВ (ТЕЛЕФОНЫ) ================= */
@@ -956,6 +1012,8 @@
     }
     .lb-prev { left: 10px; }
     .lb-next { right: 10px; }
+
+    .text-content { font-size: 14px; }
   }
 </style>
 </head>
@@ -987,7 +1045,7 @@
 <div class="layout">
 
   <!-- ЛЕВОЕ МЕНЮ -->
-  <aside class="sidebar">
+  <aside class="sidebar reveal">
     <div class="menu-title">меню</div>
     <nav>
       <button class="side-btn active" data-page="home">главная</button>
@@ -1003,7 +1061,9 @@
     <!-- ГЛАВНАЯ -->
     <section class="page active" id="page-home">
       <h2 class="page-title">участники</h2>
-      <div class="grid" id="peopleGrid"></div>
+      <div class="grid" id="peopleGrid">
+        <!-- Карточки будут добавлены через JS с классом reveal -->
+      </div>
       <p class="empty" id="emptyMsg" hidden>никого не нашли :(</p>
     </section>
 
@@ -1011,7 +1071,7 @@
     <section class="page" id="page-luck">
       <h2 class="page-title">мне сегодня повезет</h2>
 
-      <div class="luck-box">
+      <div class="luck-box reveal">
         <div class="case-viewport" id="caseViewport">
           <div class="case-track" id="caseTrack"></div>
           <div class="case-marker"></div>
@@ -1029,7 +1089,7 @@
     <!-- КОНТАКТЫ -->
     <section class="page" id="page-contacts">
       <h2 class="page-title">Контакты</h2>
-      <div class="info-box">
+      <div class="info-box reveal">
         <div class="doc-line">
           <img class="doc-img zoomable" src="images/STAT.png" alt="STAT">
           <div class="doc-text">
@@ -1044,7 +1104,7 @@
         <p><b>discord : b.r.a.h.</b></p>
         <p>OOO JJS BRATVA</p>
 
-        <div class="correspondent">
+        <div class="correspondent" id="correspondentLink">
           <span>корреспондент</span>
           <b>Шмалько Павлик Евграфович</b>
         </div>
@@ -1054,7 +1114,7 @@
     <!-- СОТРУДНИЧАЮТ С НАМИ -->
     <section class="page" id="page-partners">
       <h2 class="page-title">сотрудничают с нами</h2>
-      <div class="partner-wrap">
+      <div class="partner-wrap reveal">
         <img class="partner-img zoomable" src="images/ILYA.png" alt="ИЛЬЯ РАЗОБЛАЧИТЕЛЬ">
         <div class="partner-caption">ИЛЬЯ РАЗОБЛАЧИТЕЛЬ</div>
       </div>
@@ -1077,7 +1137,7 @@
   </button>
 </footer>
 
-<!-- ================= МОДАЛЬНОЕ ОКНО ================= -->
+<!-- ================= МОДАЛЬНОЕ ОКНО ДЛЯ ИЗОБРАЖЕНИЙ ================= -->
 <div class="modal" id="modal">
   <div class="modal-box">
     <div class="modal-head">
@@ -1090,6 +1150,36 @@
       <button class="verity-btn" id="verityBtn" type="button">
         <img src="images/Verity.png" alt="verity">
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ТЕКСТОВОЕ МОДАЛЬНОЕ ОКНО ================= -->
+<div class="modal" id="textModal">
+  <div class="modal-box text-modal-box">
+    <div class="modal-head">
+      <h3 class="modal-title">Заявление от Шмалько П.Е.</h3>
+      <button class="modal-close" id="textModalClose" aria-label="Закрыть">&times;</button>
+    </div>
+    <div class="text-content">
+Добрый вечер, будущие однокурсники и их гиперопекающие родители! Напишет ли это моя мама или я сам — уже неважно, но перед началом учёбы хотелось бы уточнить пару критически важных организационных вопросов.
+
+Всем привет! Меня зовут Шмалько Павлик Евграфович, но мне больше нравится Туз (местоимения 52/навальных).
+
+Дело в том, что я поступил к вам по целевой квоте с абсолютным преимуществом: как дагестанец, сирота, инвалид и сын участника СВО. В связи с этим за мной уже забронированы лучшая кровать у окна и первая парта во всех аудиториях.
+
+Однако меня очень тревожит контингент. Подскажите, пожалуйста, много ли в университете и конкретно на нашем направлении девушек? Понимаете, у нас совершенно нет времени на все эти любовные шуры-муры. Мы люди науки и предпочитаем общаться с компьютерами, а не с женщинами. Если на соседних факультетах девушек слишком много, подскажите, пожалуйста, направления, где их меньше всего, чтобы случайно не пересекаться в коридорах.
+
+Хотел бы узнать, как в таком чудненьком университете относятся к ребяткам, которые выделяются из толпы. Возможно ли найти друзей, похожих на меня? Я увлекаюсь озвучкой рыбалки, слушаю речи Гёббельса (обожаю Stray Kids) и коллекционирую значки СС! Ещё я рисую и даю поиграть со своей кожаной флейтой.
+
+Кроме того, со мной в общагу переезжает мой ручной домашний шмель по кличке Бархат (и его верный друг — мадагаскарский таракан Валерик). Дома их никто оставлять не хочет: мама боится, а братья не умеют с ними гулять. Они у меня невероятно воспитанные, умные, не кусаются, знают команды «сидеть», «фу» и «голос» (Бархат тихонько жужжит по щелчку, а Валерик внимательно смотрит). Ничем не заражены, их мне продал лично бывший работник Тульского экзотариума, у обоих есть ветпаспорта!
+
+В связи с этим у меня несколько уточняющих вопросов:
+ 
+Проживание и быт: Разрешено ли держать Бархата и Валерика в стандартной тумбочке, или общежитие предоставляет отдельный мини-улик? И не будут ли соседи против, если по вечерам шмель будет свободно летать по комнате для снятия стресса после пар?
+Контроль окружения: Если кто-то из девушек в общежитии начнёт сильно пахнуть ванилью или сладкими духами, Бархат может принять её за гигантский пион и попытаться опылить. Гарантирует ли администрация общаги, что в случае такой накладки в моих питомцев не бросят тапок без предупреждения?
+Учебный процесс: Разрешают ли преподаватели сажать шмеля и таракана на край парты во время лекций? Мы приехали учиться, а без меня они дома начинают тосковать и громко жужжать грустные мотивы.
+Заранее спасибо за ответы, жду не дождусь начала учёбы без лишних отвлечений!
     </div>
   </div>
 </div>
@@ -1189,7 +1279,8 @@ const people = [
       'images/COCOS4.png', 'images/COCOS5.png', 'images/COCOS6.png',
       'images/COCOS7.png', 'images/COCOS8.png', 'images/COCOS9.png',
       'images/COCOS10.png', 'images/COCOS11.png', 'images/COCOS12.png',
-      'images/COCOS13.png', 'images/COCOS14.png', 'images/COCOS15.png'
+      'images/COCOS13.png', 'images/COCOS14.png', 'images/COCOS15.png',
+      'images/COCOS16.png'
     ]
   },
   {
@@ -1217,7 +1308,7 @@ const people = [
   {
     nick: 'Морозко',
     avatar: 'images/MOR.png',
-    images: ['images/MOR1.png', 'images/MOR2.png', 'images/MOR3.png', 'images/MOR4.png']
+    images: ['images/MOR1.png', 'images/MOR2.png', 'images/MOR3.png', 'images/MOR4.png', 'images/MOR5.png']
   },
   {
     nick: 'Берибер',
@@ -1226,15 +1317,16 @@ const people = [
   }
 ];
 
-/* Специальный «участник» для клика по BRAH.png */
 const brahPerson = {
   nick: 'BRAH',
   avatar: 'images/BRAH.png',
   images: [
     'images/BRAH2.png', 'images/BRAH3.png', 'images/BRAH4.png',
     'images/BRAH5.png', 'images/BRAH6.png', 'images/BRAH7.png',
-    'images/BRAH8.png', 'images/BRAH9.png', 'images/BRAH10.png'
-  ]
+    'images/BRAH8.png', 'images/BRAH9.png', 'images/BRAH10.png',
+    'images/BRAH11.png', 'images/BRAH12.png'
+  ],
+  videos: ['videos/BRAH13.mp4', 'videos/BRAH14.mp4']
 };
 
 /* ============================================================
@@ -1295,13 +1387,14 @@ const verityImg = verityBtn.querySelector('img');
 if (verityImg) verityImg.onerror = () => { verityRow.hidden = true; };
 
 /* ============================================================
-   4. РЕНДЕР СЕТКИ АВАТАРОК
+   4. РЕНДЕР СЕТКИ АВАТАРОК (С АНИМАЦИЕЙ)
    ============================================================ */
 const grid = document.getElementById('peopleGrid');
 
-people.forEach((person) => {
+people.forEach((person, index) => {
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'card reveal';
+  card.style.transitionDelay = `${(index % 4) * 0.1}s`; 
   card.dataset.nick = person.nick;
   card.dataset.search = [person.nick, ...(person.aliases || [])].join(' ').toLowerCase();
 
@@ -1320,7 +1413,27 @@ people.forEach((person) => {
 });
 
 /* ============================================================
-   5. МОДАЛЬНОЕ ОКНО
+   4.1. НАБЛЮДАТЕЛЬ ЗА ПОЯВЛЕНИЕМ (INTERSECTION OBSERVER)
+   ============================================================ */
+const observerOptions = {
+  threshold: 0.1,
+  rootMargin: "0px 0px -20px 0px"
+};
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('active');
+      observer.unobserve(entry.target); 
+    }
+  });
+}, observerOptions);
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+
+/* ============================================================
+   5. МОДАЛЬНОЕ ОКНО С ИЗОБРАЖЕНИЯМИ И ВИДЕО
    ============================================================ */
 const modal        = document.getElementById('modal');
 const modalTitle   = document.getElementById('modalTitle');
@@ -1343,18 +1456,40 @@ function openModal(person){
     note.textContent = person.note;
     modalImages.appendChild(note);
   } else {
-    person.images.forEach((src, idx) => {
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = person.nick;
-      img.loading = 'lazy';
-      img.onerror = () => makeFallback(img, person.nick.charAt(0));
-      img.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openLightbox(src, person.images, idx);
+    if (person.images) {
+      person.images.forEach((src, idx) => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = person.nick;
+        img.loading = 'lazy';
+        img.onerror = () => makeFallback(img, person.nick.charAt(0));
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openLightbox(src, person.images, idx);
+        });
+        modalImages.appendChild(img);
       });
-      modalImages.appendChild(img);
-    });
+    }
+
+    if (person.videos) {
+      person.videos.forEach((src) => {
+        const video = document.createElement('video');
+        video.src = src;
+        // Убираем стандартные контролы, чтобы не было интерфейса
+        video.controls = false;
+        video.playsInline = true;
+        // Обработчик клика для воспроизведения/паузы
+        video.addEventListener('click', (e) => {
+          e.stopPropagation(); // чтобы не закрылось модальное окно
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
+        });
+        modalImages.appendChild(video);
+      });
+    }
   }
 
   modal.classList.add('open');
@@ -1386,6 +1521,30 @@ verityBtn.addEventListener('click', () => {
   modalImages.appendChild(img);
 
   verityRow.hidden = true;
+});
+
+/* ============================================================
+   5.1. ТЕКСТОВОЕ МОДАЛЬНОЕ ОКНО (КОРРЕСПОНДЕНТ)
+   ============================================================ */
+const textModal = document.getElementById('textModal');
+const correspondentLink = document.getElementById('correspondentLink');
+const textModalClose = document.getElementById('textModalClose');
+
+correspondentLink.addEventListener('click', () => {
+  textModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+});
+
+textModalClose.addEventListener('click', () => {
+  textModal.classList.remove('open');
+  document.body.style.overflow = '';
+});
+
+textModal.addEventListener('click', (e) => {
+  if (e.target === textModal) {
+    textModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 });
 
 /* ============================================================
@@ -1584,6 +1743,9 @@ document.addEventListener('keydown', (e) => {
       closeModal();
     } else if (videoModal.classList.contains('open')) {
       closeVideoModal();
+    } else if (textModal.classList.contains('open')) {
+      textModal.classList.remove('open');
+      document.body.style.overflow = '';
     }
   } else if (lightbox.classList.contains('open') && lbImages && lbImages.length > 1) {
     if (e.key === 'ArrowLeft') showImageByIndex(lbIndex - 1);
@@ -1612,6 +1774,17 @@ function showPage(name){
   if (stylBtn) {
     stylBtn.style.display = (name === 'home') ? 'flex' : 'none';
   }
+
+  setTimeout(() => {
+    document.querySelectorAll('.page.active .reveal').forEach(el => {
+      if (!el.classList.contains('active')) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight) {
+          el.classList.add('active');
+        }
+      }
+    });
+  }, 50);
 }
 
 menuBtns.forEach((btn) => {
@@ -1639,7 +1812,10 @@ searchInput.addEventListener('input', () => {
   document.querySelectorAll('#peopleGrid .card').forEach((card) => {
     const match = card.dataset.search.includes(q);
     card.style.display = match ? '' : 'none';
-    if (match) visible++;
+    if (match) {
+      visible++;
+      card.classList.add('active');
+    }
   });
 
   emptyMsg.hidden = visible !== 0;
