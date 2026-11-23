@@ -4,6 +4,8 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_VOTES_PER_IP_PER_DAY = 5;
+
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -15,6 +17,10 @@ const VOTE_CATEGORIES = new Set([
   "burmalda-king",
   "panther-burmaldy"
 ]);
+
+// ======================================================
+// CORS
+// ======================================================
 
 function corsHeaders(origin) {
   const headers = {
@@ -40,36 +46,67 @@ function json(data, status, origin) {
   });
 }
 
-function detectImage(bytes) {
-  const b = bytes;
+function internalJson(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+}
 
-  if (b.length >= 3 &&
-      b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) {
+// ======================================================
+// IMAGE VALIDATION
+// ======================================================
+
+function detectImage(bytes) {
+  // JPEG
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
     return "image/jpeg";
   }
 
-  if (b.length >= 8 &&
-      b[0] === 0x89 && b[1] === 0x50 &&
-      b[2] === 0x4e && b[3] === 0x47) {
+  // PNG
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
     return "image/png";
   }
 
-  if (b.length >= 12 &&
-      String.fromCharCode(...b.slice(0, 4)) === "RIFF" &&
-      String.fromCharCode(...b.slice(8, 12)) === "WEBP") {
+  // WebP
+  if (
+    bytes.length >= 12 &&
+    String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+    String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+  ) {
     return "image/webp";
   }
 
-  if (b.length >= 6) {
-    const sig = String.fromCharCode(...b.slice(0, 6));
+  // GIF
+  if (bytes.length >= 6) {
+    const signature = String.fromCharCode(
+      ...bytes.slice(0, 6)
+    );
 
-    if (sig === "GIF87a" || sig === "GIF89a") {
+    if (signature === "GIF87a" || signature === "GIF89a") {
       return "image/gif";
     }
   }
 
   return null;
 }
+
+// ======================================================
+// HASH
+// ======================================================
 
 async function sha256hex(value) {
   const digest = await crypto.subtle.digest(
@@ -78,12 +115,12 @@ async function sha256hex(value) {
   );
 
   return [...new Uint8Array(digest)]
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map(byte => byte.toString(16).padStart(2, "0"))
     .join("");
 }
 
 // ======================================================
-// TURNSTILE SERVER-SIDE VALIDATION
+// TURNSTILE
 // ======================================================
 
 async function verifyTurnstile(token, secret, ip) {
@@ -102,7 +139,6 @@ async function verifyTurnstile(token, secret, ip) {
   }
 
   try {
-    // Отправляем данные в формате x-www-form-urlencoded
     const params = new URLSearchParams();
 
     params.set("secret", secret);
@@ -124,27 +160,36 @@ async function verifyTurnstile(token, secret, ip) {
       }
     );
 
+    const rawText = await response.text();
+
+    let result = null;
+
+    try {
+      result = JSON.parse(rawText);
+    } catch {
+      result = null;
+    }
+
+    console.log("TURNSTILE DEBUG:", {
+      httpStatus: response.status,
+      responseBody: rawText.slice(0, 1000)
+    });
+
     if (!response.ok) {
-      const responseText = await response.text().catch(() => "");
-
-      console.error("Turnstile Siteverify HTTP error:", {
-        status: response.status,
-        response: responseText.slice(0, 500)
-      });
-
       return {
         success: false,
-        errorCodes: [`siteverify-http-${response.status}`]
+        errorCodes: [
+          `siteverify-http-${response.status}`
+        ]
       };
     }
 
-    const result = await response.json();
-
-    console.log("Turnstile verification result:", {
-      success: result.success,
-      hostname: result.hostname,
-      errorCodes: result["error-codes"] || []
-    });
+    if (!result) {
+      return {
+        success: false,
+        errorCodes: ["invalid-siteverify-response"]
+      };
+    }
 
     return {
       success: result.success === true,
@@ -153,70 +198,68 @@ async function verifyTurnstile(token, secret, ip) {
     };
 
   } catch (error) {
-    console.error("TURNSTILE FETCH EXCEPTION:", {
+    console.error("Turnstile connection error:", {
       name: error?.name,
       message: error?.message
     });
 
-    if (error?.name === "TimeoutError") {
-      return {
-        success: false,
-        errorCodes: ["siteverify-timeout"]
-      };
-    }
-
     return {
       success: false,
-      errorCodes: ["siteverify-network-error"]
+      errorCodes: [
+        error?.name === "TimeoutError"
+          ? "siteverify-timeout"
+          : "siteverify-network-error"
+      ]
     };
   }
 }
 
-function turnstileFailureMessage(errorCodes) {
-  const codes = new Set(errorCodes || []);
+function turnstileFailureMessage(errorCodes = []) {
+  const codes = new Set(errorCodes);
 
-  if (codes.has("missing-secret") ||
-      codes.has("missing-input-secret")) {
+  if (
+    codes.has("missing-secret") ||
+    codes.has("missing-input-secret")
+  ) {
     return "На сервере не задан TURNSTILE_SECRET_KEY.";
   }
 
   if (codes.has("invalid-input-secret")) {
-    return "TURNSTILE_SECRET_KEY неверный: в Worker указан неправильный Secret Key.";
+    return "Secret Key Turnstile неверный.";
   }
 
-  if (codes.has("missing-token") ||
-      codes.has("missing-input-response")) {
-    return "Токен проверки не передался с сайта. Пройди Turnstile ещё раз.";
+  if (
+    codes.has("missing-token") ||
+    codes.has("missing-input-response")
+  ) {
+    return "Токен проверки не передался. Пройди капчу заново.";
   }
 
   if (codes.has("invalid-input-response")) {
-    return "Токен Turnstile недействителен. Проверь соответствие Site Key и Secret Key одного виджета.";
+    return "Токен капчи недействителен. Пройди проверку заново.";
   }
 
   if (codes.has("timeout-or-duplicate")) {
-    return "Токен Turnstile истёк или уже использован. Пройди проверку заново.";
+    return "Токен капчи истёк или уже использован. Пройди проверку заново.";
   }
 
-  const httpError = [...codes].find(code =>
-    code.startsWith("siteverify-http-")
-  );
-
-  if (httpError) {
-    return `Сервис проверки Turnstile вернул HTTP-ошибку (${httpError}). Посмотри Worker Logs.`;
+  if (codes.has("siteverify-http-400")) {
+    return "Turnstile вернул HTTP 400. Проверь Worker Logs.";
   }
 
   if (codes.has("siteverify-timeout")) {
-    return "Проверка Turnstile превысила время ожидания. Попробуй позже.";
+    return "Сервис проверки капчи не ответил вовремя.";
   }
 
-  if (codes.has("siteverify-network-error") ||
-      codes.has("internal-error")) {
-    return "Worker не смог соединиться с сервисом проверки Turnstile. Проверь Logs в Cloudflare.";
+  if (
+    codes.has("siteverify-network-error") ||
+    codes.has("internal-error")
+  ) {
+    return "Не удалось соединиться с сервисом проверки Turnstile.";
   }
 
-  return "Проверка антибота не прошла. Проверь ключи Turnstile и пройди капчу заново.";
+  return "Проверка антибота не пройдена. Попробуй ещё раз.";
 }
-
 
 // ======================================================
 // DURABLE OBJECT: VoteRegistry
@@ -229,23 +272,26 @@ export class VoteRegistry {
   }
 
   async fetch(request) {
-    const url = new URL(request.url);
-
     if (request.method !== "POST") {
-      return new Response("Method not allowed", {
-        status: 405
-      });
+      return internalJson({
+        error: "method_not_allowed"
+      }, 405);
     }
+
+    const url = new URL(request.url);
 
     const body = await request.json().catch(() => null);
 
     if (!body) {
-      return new Response("Bad JSON", {
-        status: 400
-      });
+      return internalJson({
+        error: "invalid_json"
+      }, 400);
     }
 
-    // Регистрация голоса
+    // --------------------------------------------------
+    // CLAIM VOTE
+    // --------------------------------------------------
+
     if (url.pathname === "/claim") {
       const {
         category,
@@ -255,45 +301,98 @@ export class VoteRegistry {
         claimId
       } = body;
 
-      return this.state.blockConcurrencyWhile(async () => {
-        const deviceKey = `voted:${category}:${deviceHash}`;
-        const ipKey = `ipquota:${category}:${ipHash}:${day}`;
+      if (!VOTE_CATEGORIES.has(category)) {
+        return internalJson({
+          error: "invalid_category"
+        }, 400);
+      }
 
-        const existing = await this.state.storage.get(deviceKey);
+      if (
+        typeof deviceHash !== "string" ||
+        !/^[a-f0-9]{64}$/.test(deviceHash)
+      ) {
+        return internalJson({
+          error: "invalid_device_hash"
+        }, 400);
+      }
+
+      if (
+        typeof ipHash !== "string" ||
+        !/^[a-f0-9]{64}$/.test(ipHash)
+      ) {
+        return internalJson({
+          error: "invalid_ip_hash"
+        }, 400);
+      }
+
+      if (
+        typeof day !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(day)
+      ) {
+        return internalJson({
+          error: "invalid_day"
+        }, 400);
+      }
+
+      if (
+        typeof claimId !== "string" ||
+        claimId.length < 10 ||
+        claimId.length > 100
+      ) {
+        return internalJson({
+          error: "invalid_claim_id"
+        }, 400);
+      }
+
+      return this.state.blockConcurrencyWhile(async () => {
+        const deviceKey =
+          `voted:${category}:${deviceHash}`;
+
+        const ipKey =
+          `ipquota:${category}:${ipHash}:${day}`;
+
+        // Уже голосовал с этого устройства
+        const existing =
+          await this.state.storage.get(deviceKey);
 
         if (existing) {
-          return new Response(
-            JSON.stringify({ error: "device_already_voted" }),
-            { status: 409 }
-          );
+          return internalJson({
+            error: "device_already_voted"
+          }, 409);
         }
 
+        // Проверка IP-лимита
         const ipCount =
           (await this.state.storage.get(ipKey)) || 0;
 
-        if (ipCount >= 5) {
-          return new Response(
-            JSON.stringify({ error: "ip_quota" }),
-            { status: 429 }
-          );
+        if (ipCount >= MAX_VOTES_PER_IP_PER_DAY) {
+          return internalJson({
+            error: "ip_quota"
+          }, 429);
         }
 
+        // Регистрируем голос
         await this.state.storage.put(deviceKey, {
           claimId,
           ipKey,
           createdAt: Date.now()
         });
 
-        await this.state.storage.put(ipKey, ipCount + 1);
-
-        return new Response(
-          JSON.stringify({ ok: true }),
-          { status: 200 }
+        await this.state.storage.put(
+          ipKey,
+          ipCount + 1
         );
+
+        return internalJson({
+          ok: true
+        });
       });
     }
 
-    // Отмена голоса, если Discord не принял его
+    // --------------------------------------------------
+    // ROLLBACK VOTE
+    // --------------------------------------------------
+
     if (url.pathname === "/rollback") {
       const {
         category,
@@ -301,10 +400,29 @@ export class VoteRegistry {
         claimId
       } = body;
 
-      return this.state.blockConcurrencyWhile(async () => {
-        const deviceKey = `voted:${category}:${deviceHash}`;
-        const record = await this.state.storage.get(deviceKey);
+      if (!VOTE_CATEGORIES.has(category)) {
+        return internalJson({
+          error: "invalid_category"
+        }, 400);
+      }
 
+      if (
+        typeof deviceHash !== "string" ||
+        !/^[a-f0-9]{64}$/.test(deviceHash)
+      ) {
+        return internalJson({
+          error: "invalid_device_hash"
+        }, 400);
+      }
+
+      return this.state.blockConcurrencyWhile(async () => {
+        const deviceKey =
+          `voted:${category}:${deviceHash}`;
+
+        const record =
+          await this.state.storage.get(deviceKey);
+
+        // Удаляем только соответствующий текущий claim
         if (record && record.claimId === claimId) {
           const ipCount =
             (await this.state.storage.get(record.ipKey)) || 0;
@@ -321,19 +439,17 @@ export class VoteRegistry {
           }
         }
 
-        return new Response(
-          JSON.stringify({ ok: true }),
-          { status: 200 }
-        );
+        return internalJson({
+          ok: true
+        });
       });
     }
 
-    return new Response("Not found", {
-      status: 404
-    });
+    return internalJson({
+      error: "not_found"
+    }, 404);
   }
 }
-
 
 // ======================================================
 // MAIN WORKER
@@ -341,9 +457,15 @@ export class VoteRegistry {
 
 export default {
   async fetch(request, env) {
-    const origin = request.headers.get("Origin") || "";
+    const origin =
+      request.headers.get("Origin") || "";
 
-    // CORS preflight
+    const url = new URL(request.url);
+
+    // --------------------------------------------------
+    // OPTIONS / CORS PREFLIGHT
+    // --------------------------------------------------
+
     if (request.method === "OPTIONS") {
       if (!ALLOWED_ORIGINS.has(origin)) {
         return new Response(null, {
@@ -357,21 +479,29 @@ export default {
       });
     }
 
-    const url = new URL(request.url);
+    // --------------------------------------------------
+    // ROUTE VALIDATION
+    // --------------------------------------------------
 
     if (
       request.method !== "POST" ||
       !["/upload", "/vote"].includes(url.pathname)
     ) {
-      return json({ error: "Not found" }, 404, origin);
+      return json({
+        error: "Not found"
+      }, 404, origin);
     }
 
     if (!ALLOWED_ORIGINS.has(origin)) {
-      return json({ error: "Origin not allowed" }, 403, origin);
+      return json({
+        error: "Origin not allowed"
+      }, 403, origin);
     }
 
     if (!env.DISCORD_WEBHOOK_URL) {
-      return json({ error: "Webhook не настроен." }, 500, origin);
+      return json({
+        error: "Webhook не настроен."
+      }, 500, origin);
     }
 
     // ==================================================
@@ -384,9 +514,11 @@ export default {
       try {
         const body = await request.json();
 
-        // Honeypot против простых ботов
+        // Honeypot
         if (String(body.website || "").trim()) {
-          return json({ ok: true }, 200, origin);
+          return json({
+            ok: true
+          }, 200, origin);
         }
 
         const usernameRaw =
@@ -404,6 +536,7 @@ export default {
         const token =
           String(body.turnstileToken || "");
 
+        // Никаких упоминаний @ в Discord
         const username = usernameRaw
           .replace(/[\r\n@]/g, " ")
           .slice(0, 80);
@@ -411,6 +544,10 @@ export default {
         const candidate = candidateRaw
           .replace(/[\r\n@]/g, " ")
           .slice(0, 80);
+
+        // ------------------------------------------------
+        // INPUT VALIDATION
+        // ------------------------------------------------
 
         if (
           !username ||
@@ -429,9 +566,11 @@ export default {
           }, 400, origin);
         }
 
-        if (!/^[a-zA-Z0-9-]{20,120}$/.test(deviceId)) {
+        if (
+          !/^[a-zA-Z0-9-]{20,120}$/.test(deviceId)
+        ) {
           return json({
-            error: "Не удалось идентифицировать устройство. Разреши localStorage и обнови страницу."
+            error: "Не удалось определить устройство. Разреши localStorage и обнови страницу."
           }, 400, origin);
         }
 
@@ -441,19 +580,29 @@ export default {
           }, 500, origin);
         }
 
-        // Проверка капчи на сервере
+        if (!env.VOTE_REGISTRY) {
+          return json({
+            error: "Durable Object VOTE_REGISTRY не подключён."
+          }, 500, origin);
+        }
+
+        // ------------------------------------------------
+        // TURNSTILE VALIDATION
+        // ------------------------------------------------
+
         const ip =
           request.headers.get("CF-Connecting-IP") || "";
 
-        const captchaResult = await verifyTurnstile(
-          token,
-          env.TURNSTILE_SECRET_KEY,
-          ip
-        );
+        const captchaResult =
+          await verifyTurnstile(
+            token,
+            env.TURNSTILE_SECRET_KEY,
+            ip
+          );
 
         if (!captchaResult.success) {
           console.error(
-            "Turnstile validation failed; error codes:",
+            "Turnstile failed:",
             captchaResult.errorCodes
           );
 
@@ -464,40 +613,52 @@ export default {
           }, 403, origin);
         }
 
-        if (!env.VOTE_REGISTRY) {
-          return json({
-            error: "Защита голосования не подключена (VOTE_REGISTRY)."
-          }, 500, origin);
-        }
+        // ------------------------------------------------
+        // CREATE HASHES
+        // ------------------------------------------------
 
-        const deviceHash = await sha256hex(deviceId);
-        const ipHash = await sha256hex(ip || "no-ip");
-        const day = new Date().toISOString().slice(0, 10);
-        const claimId = crypto.randomUUID();
+        const deviceHash =
+          await sha256hex(deviceId);
 
-        const guard = env.VOTE_REGISTRY.get(
-          env.VOTE_REGISTRY.idFromName(
-            "burdosley-vote-guard"
-          )
-        );
+        const ipHash =
+          await sha256hex(ip || "no-ip");
 
-        // Регистрируем голос в Durable Object
-        const claimResponse = await guard.fetch(
-          "https://vote-guard/claim",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              category,
-              deviceHash,
-              ipHash,
-              day,
-              claimId
-            })
-          }
-        );
+        // UTC date
+        const day =
+          new Date().toISOString().slice(0, 10);
+
+        const claimId =
+          crypto.randomUUID();
+
+        // ------------------------------------------------
+        // DURABLE OBJECT
+        // ------------------------------------------------
+
+        const guard =
+          env.VOTE_REGISTRY.get(
+            env.VOTE_REGISTRY.idFromName(
+              "burdosley-vote-guard"
+            )
+          );
+
+        // Резервируем голос до отправки в Discord
+        const claimResponse =
+          await guard.fetch(
+            "https://vote-guard/claim",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                category,
+                deviceHash,
+                ipHash,
+                day,
+                claimId
+              })
+            }
+          );
 
         if (!claimResponse.ok) {
           const claimError =
@@ -515,11 +676,14 @@ export default {
             }, 429, origin);
           }
 
+          console.error("Vote claim failed:", claimError);
+
           return json({
-            error: claimError.error || "Не удалось зарегистрировать голос."
+            error: "Не удалось зарегистрировать голос."
           }, 500, origin);
         }
 
+        // Запоминаем claim, чтобы можно было откатить
         claim = {
           category,
           deviceHash,
@@ -527,82 +691,67 @@ export default {
           guard
         };
 
+        // ------------------------------------------------
+        // SEND TO DISCORD
+        // ------------------------------------------------
+
         const categoryLabel =
           category === "burmalda-king"
             ? "бурмалда-кинг"
             : "пантера бурмалды";
 
-        // Отправляем голос в Discord
-        const discordResponse = await fetch(
-          env.DISCORD_WEBHOOK_URL,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              content:
-                `🗳️ **Новая номинация — БУРДОСЛЕЙ**\n` +
-                `Номинация: **${categoryLabel}**\n` +
-                `Discord: ${username}\n` +
-                `Выбор: **${candidate}**`,
-              allowed_mentions: {
-                parse: []
-              }
-            })
-          }
-        );
-
-        if (!discordResponse.ok) {
-          await claim.guard.fetch(
-            "https://vote-guard/rollback",
+        const discordResponse =
+          await fetch(
+            env.DISCORD_WEBHOOK_URL,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                category: claim.category,
-                deviceHash: claim.deviceHash,
-                claimId: claim.claimId
+                content:
+                  `🗳️ **Новая номинация — БУРДОСЛЕЙ**\n` +
+                  `Номинация: **${categoryLabel}**\n` +
+                  `Discord: ${username}\n` +
+                  `Выбор: **${candidate}**`,
+                allowed_mentions: {
+                  parse: []
+                }
               })
             }
           );
 
-          claim = null;
-
+        // Discord отказал
+        if (!discordResponse.ok) {
           console.error(
-            "Discord webhook returned status",
+            "Discord vote webhook status:",
             discordResponse.status
           );
+
+          await rollbackClaim(claim);
+
+          claim = null;
 
           return json({
             error: "Discord не принял голос. Попробуй позже."
           }, 502, origin);
         }
 
-        return json({ ok: true }, 200, origin);
+        // Успешная отправка
+        claim = null;
 
-      } catch (err) {
-        console.error("Vote error", err);
+        return json({
+          ok: true
+        }, 200, origin);
 
+      } catch (error) {
+        console.error("Vote endpoint error:", error);
+
+        // Если голос зарезервирован, но произошла ошибка,
+        // пытаемся вернуть возможность голосовать
         if (claim) {
-          try {
-            await claim.guard.fetch(
-              "https://vote-guard/rollback",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  category: claim.category,
-                  deviceHash: claim.deviceHash,
-                  claimId: claim.claimId
-                })
-              }
-            );
-          } catch (_) {}
+          await rollbackClaim(claim);
+          claim = null;
         }
 
         return json({
@@ -625,14 +774,18 @@ export default {
     }
 
     try {
-      const form = await request.formData();
+      const form =
+        await request.formData();
 
       // Honeypot
       if (String(form.get("website") || "").trim()) {
-        return json({ ok: true }, 200, origin);
+        return json({
+          ok: true
+        }, 200, origin);
       }
 
-      const file = form.get("photo");
+      const file =
+        form.get("photo");
 
       if (!(file instanceof File)) {
         return json({
@@ -640,30 +793,35 @@ export default {
         }, 400, origin);
       }
 
-      if (file.size < 1 || file.size > MAX_BYTES) {
+      if (
+        file.size < 1 ||
+        file.size > MAX_BYTES
+      ) {
         return json({
           error: "Файл должен быть не больше 8 МБ."
         }, 400, origin);
       }
 
-      const bytes = new Uint8Array(
-        await file.arrayBuffer()
-      );
+      const bytes =
+        new Uint8Array(await file.arrayBuffer());
 
-      const mime = detectImage(bytes);
+      const mime =
+        detectImage(bytes);
 
-      if (!mime || !ALLOWED_TYPES.has(mime)) {
+      if (
+        !mime ||
+        !ALLOWED_TYPES.has(mime)
+      ) {
         return json({
           error: "Файл не является поддерживаемым изображением."
         }, 400, origin);
       }
 
-      const sender = String(
-        form.get("sender") || "Анонимно"
-      )
-        .replace(/[\r\n@]/g, " ")
-        .trim()
-        .slice(0, 50) || "Анонимно";
+      const sender =
+        String(form.get("sender") || "Анонимно")
+          .replace(/[\r\n@]/g, " ")
+          .trim()
+          .slice(0, 50) || "Анонимно";
 
       const ext = ({
         "image/jpeg": "jpg",
@@ -672,7 +830,12 @@ export default {
         "image/gif": "gif"
       })[mime];
 
-      const discordForm = new FormData();
+      // ------------------------------------------------
+      // DISCORD FORM DATA
+      // ------------------------------------------------
+
+      const discordForm =
+        new FormData();
 
       discordForm.append(
         "payload_json",
@@ -688,21 +851,24 @@ export default {
 
       discordForm.append(
         "files[0]",
-        new Blob([bytes], { type: mime }),
+        new Blob([bytes], {
+          type: mime
+        }),
         `burmaldaa-${Date.now()}.${ext}`
       );
 
-      const discordResponse = await fetch(
-        env.DISCORD_WEBHOOK_URL,
-        {
-          method: "POST",
-          body: discordForm
-        }
-      );
+      const discordResponse =
+        await fetch(
+          env.DISCORD_WEBHOOK_URL,
+          {
+            method: "POST",
+            body: discordForm
+          }
+        );
 
       if (!discordResponse.ok) {
         console.error(
-          "Discord webhook returned status",
+          "Discord photo webhook status:",
           discordResponse.status
         );
 
@@ -711,10 +877,12 @@ export default {
         }, 502, origin);
       }
 
-      return json({ ok: true }, 200, origin);
+      return json({
+        ok: true
+      }, 200, origin);
 
-    } catch (err) {
-      console.error("Upload error", err);
+    } catch (error) {
+      console.error("Upload endpoint error:", error);
 
       return json({
         error: "Ошибка обработки фотографии."
@@ -722,3 +890,41 @@ export default {
     }
   }
 };
+
+// ======================================================
+// ROLLBACK HELPER
+// ======================================================
+
+async function rollbackClaim(claim) {
+  if (!claim) return;
+
+  try {
+    const response =
+      await claim.guard.fetch(
+        "https://vote-guard/rollback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            category: claim.category,
+            deviceHash: claim.deviceHash,
+            claimId: claim.claimId
+          })
+        }
+      );
+
+    if (!response.ok) {
+      console.error(
+        "Vote rollback failed:",
+        response.status
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Vote rollback exception:",
+      error
+    );
+  }
+}
