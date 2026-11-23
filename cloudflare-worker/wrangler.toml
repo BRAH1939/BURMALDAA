@@ -1,4 +1,11 @@
-name = "burmaldaa-photo-upload"
+name = "worker"
 main = "worker.js"
-compatibility_date = "2026-10-01"
-workers_dev = true
+compatibility_date = "2026-11-23"
+
+[[durable_objects.bindings]]
+name = "VOTE_REGISTRY"
+class_name = "VoteRegistry"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["VoteRegistry"]
