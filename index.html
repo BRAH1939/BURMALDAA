@@ -1028,7 +1028,8 @@
   .vote-submit{width:100%;margin-top:18px;padding:14px 18px;border:2px solid #767676;border-radius:12px;background:#434343;color:#ffffff;cursor:pointer;font-family:'Rubik Mono One',Impact,sans-serif;font-size:13px;transition:background .2s,transform .2s}
   .vote-submit:hover{background:#5f5f5f;transform:translateY(-2px)}
   .vote-submit:disabled{opacity:.55;cursor:wait;transform:none}
-  .vote-status{min-height:22px;margin:12px 0 0;font-size:14px;overflow-wrap:anywhere}
+  .vote-status{min-height:0;margin:8px 0 0;font-size:14px;overflow-wrap:anywhere}
+  .vote-status:empty{display:none}
   @media(max-width:700px){.contacts-forms-row{display:block}.contacts-forms-row .vote-box{margin-top:20px}}
 
 
@@ -1239,16 +1240,16 @@
               <option value="burmalda-king">бурмалда-кинг</option>
               <option value="panther-burmaldy">пантера бурмалды</option>
             </select>
-            <label class="photo-upload-label" for="voteDiscordUsername">Твой Discord-юзернейм (точно как в Discord)</label>
+            <label class="photo-upload-label" for="voteDiscordUsername">Юз в дискорде</label>
             <input id="voteDiscordUsername" name="discordUsername" type="text" maxlength="80" placeholder="Discord username" required autocomplete="off">
             <label class="photo-upload-label" for="voteCandidate">Кого номинируешь?</label>
             <input id="voteCandidate" name="candidate" type="text" maxlength="80" placeholder="Введи любой ник участника" required autocomplete="off">
             <div class="photo-honeypot" aria-hidden="true"><label for="voteWebsite">Не заполняй это поле</label><input id="voteWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
             <div class="turnstile-box">
-              <div class="cf-turnstile" data-sitekey="0x4AAAAAAGPTByxUU58eYAvy" data-theme="dark"></div>
+              <div class="cf-turnstile" data-sitekey="0x4AAAAAAGPTByxUU58eYAvy" data-theme="dark" data-callback="onVoteTurnstileSuccess" data-error-callback="onVoteTurnstileError" data-expired-callback="onVoteTurnstileExpired"></div>
             </div>
-            <button class="vote-submit" id="voteSubmit" type="submit">ОТПРАВИТЬ ГОЛОС</button>
             <p class="vote-status" id="voteStatus" role="status" aria-live="polite"></p>
+            <button class="vote-submit" id="voteSubmit" type="submit">ОТПРАВИТЬ ГОЛОС</button>
           </form>
         </div>
       </div>
@@ -2220,6 +2221,24 @@ if (photoUploadForm) {
    Device token хранится в localStorage; сервер дополнительно ограничивает
    голоса по device token и IP-квоте через Durable Object.
    ============================================================ */
+let voteTurnstileToken = '';
+window.onVoteTurnstileSuccess = function(token) {
+  voteTurnstileToken = token || '';
+  const status = document.getElementById('voteStatus');
+  if (status) status.textContent = '';
+};
+window.onVoteTurnstileError = function(errorCode) {
+  voteTurnstileToken = '';
+  const status = document.getElementById('voteStatus');
+  if (status) status.textContent = 'Не удалось пройти проверку Cloudflare. Обнови проверку и попробуй ещё раз.';
+  console.warn('Turnstile client error:', errorCode);
+};
+window.onVoteTurnstileExpired = function() {
+  voteTurnstileToken = '';
+  const status = document.getElementById('voteStatus');
+  if (status) status.textContent = 'Проверка истекла. Пройди её заново.';
+};
+
 const voteForm = document.getElementById('voteForm');
 if (voteForm) {
   voteForm.addEventListener('submit', async (event) => {
@@ -2230,8 +2249,7 @@ if (voteForm) {
     const status = document.getElementById('voteStatus');
     const submit = document.getElementById('voteSubmit');
     const honeypot = document.getElementById('voteWebsite');
-    const captchaInput = voteForm.querySelector('[name="cf-turnstile-response"]');
-    const captchaToken = captchaInput ? captchaInput.value : '';
+    const captchaToken = voteTurnstileToken;
 
     if (honeypot.value) return;
     if (!category) { status.textContent = 'Выбери номинацию.'; return; }
@@ -2264,9 +2282,11 @@ if (voteForm) {
       if (!response.ok) throw new Error(result.error || 'Не удалось отправить голос.');
       status.textContent = 'Голос успешно отправлен! Спасибо.';
       voteForm.reset();
+      voteTurnstileToken = '';
       if (window.turnstile) window.turnstile.reset();
     } catch (error) {
       status.textContent = error.message || 'Ошибка соединения. Попробуй позже.';
+      voteTurnstileToken = '';
       if (window.turnstile) window.turnstile.reset();
     } finally {
       submit.disabled = false;
