@@ -2116,7 +2116,7 @@ if (photoUploadForm) {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowed.includes(file.type)) { status.textContent = 'Поддерживаются JPG, PNG, WEBP и GIF.'; return; }
     if (file.size > 8 * 1024 * 1024) { status.textContent = 'Файл слишком большой. Максимум — 8 МБ.'; return; }
-    if (PHOTO_UPLOAD_API.includes('https://worker.kozukhargg.workers.dev')) {
+    if (PHOTO_UPLOAD_API.includes('https://worker.kozukhargg.workers.dev/upload')) {
       status.textContent = 'Отправка ещё не настроена: администратор должен подключить сервер.';
       return;
     }
