@@ -1,14 +1,29 @@
-const ALLOWED_ORIGIN = "https://brah1939.github.io";
+
+const ALLOWED_ORIGINS = new Set([
+  "https://brah1939.github.io",
+  "https://burmaldaa.kozukhargg.workers.dev"
+]);
+
 const MAX_BYTES = 8 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif"
+]);
 
 function corsHeaders(origin) {
-  return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  const headers = {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Vary": "Origin"
   };
+
+  if (ALLOWED_ORIGINS.has(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+
+  return headers;
 }
 
 function json(data, status, origin) {
@@ -24,23 +39,43 @@ function json(data, status, origin) {
 function detectImage(bytes) {
   const b = bytes;
 
-  if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
+  // JPEG
+  if (
+    b.length >= 3 &&
+    b[0] === 0xff &&
+    b[1] === 0xd8 &&
+    b[2] === 0xff
+  ) {
     return "image/jpeg";
+  }
 
-  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47)
+  // PNG
+  if (
+    b.length >= 8 &&
+    b[0] === 0x89 &&
+    b[1] === 0x50 &&
+    b[2] === 0x4e &&
+    b[3] === 0x47
+  ) {
     return "image/png";
+  }
 
+  // WEBP
   if (
     b.length >= 12 &&
     String.fromCharCode(...b.slice(0, 4)) === "RIFF" &&
     String.fromCharCode(...b.slice(8, 12)) === "WEBP"
-  )
+  ) {
     return "image/webp";
+  }
 
+  // GIF
   if (b.length >= 6) {
     const sig = String.fromCharCode(...b.slice(0, 6));
-    if (sig === "GIF87a" || sig === "GIF89a")
+
+    if (sig === "GIF87a" || sig === "GIF89a") {
       return "image/gif";
+    }
   }
 
   return null;
@@ -50,9 +85,11 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
 
+    // CORS preflight
     if (request.method === "OPTIONS") {
-      if (origin !== ALLOWED_ORIGIN)
+      if (!ALLOWED_ORIGINS.has(origin)) {
         return new Response(null, { status: 403 });
+      }
 
       return new Response(null, {
         status: 204,
@@ -62,6 +99,7 @@ export default {
 
     const url = new URL(request.url);
 
+    // Разрешённые маршруты
     if (
       request.method !== "POST" ||
       !["/upload", "/vote"].includes(url.pathname)
@@ -69,27 +107,35 @@ export default {
       return json({ error: "Not found" }, 404, origin);
     }
 
-    if (origin !== ALLOWED_ORIGIN)
+    // Проверка домена сайта
+    if (!ALLOWED_ORIGINS.has(origin)) {
       return json({ error: "Origin not allowed" }, 403, origin);
+    }
 
-    if (!env.DISCORD_WEBHOOK_URL)
+    // Проверка webhook
+    if (!env.DISCORD_WEBHOOK_URL) {
       return json({ error: "Webhook не настроен." }, 500, origin);
+    }
 
-    // =========================
-    // VOTING
-    // =========================
+    // ==================================================
+    // ГОЛОСОВАНИЕ
+    // ==================================================
     if (url.pathname === "/vote") {
       try {
         const body = await request.json();
 
-        if (String(body.website || "").trim())
+        // Honeypot
+        if (String(body.website || "").trim()) {
           return json({ ok: true }, 200, origin);
+        }
 
         const username = String(body.discordUsername || "").trim();
         const candidate = String(body.candidate || "").trim();
 
-        // Добавляй новых участников сюда
-        const candidates = [];
+        // Список участников — добавляй новых сюда
+        const candidates = [
+          "LIBI"
+        ];
 
         if (
           !username ||
@@ -118,12 +164,21 @@ export default {
           },
           body: JSON.stringify({
             content:
-              `🗳️ **Новый голос**\nDiscord: ${username}\nГолос за: **${candidate}**`,
-            allowed_mentions: { parse: [] }
+              `🗳️ **Новый голос**\n` +
+              `Discord: ${username}\n` +
+              `Голос за: **${candidate}**`,
+            allowed_mentions: {
+              parse: []
+            }
           })
         });
 
         if (!discordResponse.ok) {
+          console.error(
+            "Discord webhook returned status:",
+            discordResponse.status
+          );
+
           return json(
             { error: "Discord не принял голос. Попробуй позже." },
             502,
@@ -134,6 +189,8 @@ export default {
         return json({ ok: true }, 200, origin);
 
       } catch (err) {
+        console.error("Vote error:", err);
+
         return json(
           { error: "Не удалось обработать голос." },
           400,
@@ -142,9 +199,9 @@ export default {
       }
     }
 
-    // =========================
-    // PHOTO UPLOAD
-    // =========================
+    // ==================================================
+    // ОТПРАВКА ФОТОГРАФИЙ
+    // ==================================================
 
     const declaredLength = Number(
       request.headers.get("Content-Length") || 0
@@ -161,9 +218,10 @@ export default {
     try {
       const form = await request.formData();
 
-      // Honeypot для защиты от ботов
-      if (String(form.get("website") || "").trim())
+      // Honeypot для ботов
+      if (String(form.get("website") || "").trim()) {
         return json({ ok: true }, 200, origin);
+      }
 
       const file = form.get("photo");
 
@@ -212,8 +270,11 @@ export default {
         "payload_json",
         JSON.stringify({
           content:
-            `📷 **Новая фотография с сайта BURMALDAA**\nОтправитель: ${sender}`,
-          allowed_mentions: { parse: [] }
+            `📷 **Новая фотография с сайта BURMALDAA**\n` +
+            `Отправитель: ${sender}`,
+          allowed_mentions: {
+            parse: []
+          }
         })
       );
 
@@ -230,7 +291,7 @@ export default {
 
       if (!discordResponse.ok) {
         console.error(
-          "Discord webhook returned",
+          "Discord webhook returned status:",
           discordResponse.status
         );
 
