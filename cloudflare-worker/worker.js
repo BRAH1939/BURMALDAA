@@ -82,6 +82,10 @@ async function sha256hex(value) {
     .join("");
 }
 
+// ======================================================
+// TURNSTILE SERVER-SIDE VALIDATION
+// ======================================================
+
 async function verifyTurnstile(token, secret, ip) {
   if (!secret) {
     return {
@@ -98,39 +102,68 @@ async function verifyTurnstile(token, secret, ip) {
   }
 
   try {
-    const form = new FormData();
+    // Отправляем данные в формате x-www-form-urlencoded
+    const params = new URLSearchParams();
 
-    form.append("secret", secret);
-    form.append("response", token);
+    params.set("secret", secret);
+    params.set("response", token);
 
     if (ip) {
-      form.append("remoteip", ip);
+      params.set("remoteip", ip);
     }
 
     const response = await fetch(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
         method: "POST",
-        body: form
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: params.toString(),
+        signal: AbortSignal.timeout(10000)
       }
     );
 
     if (!response.ok) {
+      const responseText = await response.text().catch(() => "");
+
+      console.error("Turnstile Siteverify HTTP error:", {
+        status: response.status,
+        response: responseText.slice(0, 500)
+      });
+
       return {
         success: false,
-        errorCodes: ["siteverify-http-error"]
+        errorCodes: [`siteverify-http-${response.status}`]
       };
     }
 
     const result = await response.json();
+
+    console.log("Turnstile verification result:", {
+      success: result.success,
+      hostname: result.hostname,
+      errorCodes: result["error-codes"] || []
+    });
 
     return {
       success: result.success === true,
       errorCodes: result["error-codes"] || [],
       hostname: result.hostname || ""
     };
+
   } catch (error) {
-    console.error("Turnstile Siteverify request failed", error);
+    console.error("TURNSTILE FETCH EXCEPTION:", {
+      name: error?.name,
+      message: error?.message
+    });
+
+    if (error?.name === "TimeoutError") {
+      return {
+        success: false,
+        errorCodes: ["siteverify-timeout"]
+      };
+    }
 
     return {
       success: false,
@@ -164,10 +197,21 @@ function turnstileFailureMessage(errorCodes) {
     return "Токен Turnstile истёк или уже использован. Пройди проверку заново.";
   }
 
-  if (codes.has("siteverify-http-error") ||
-      codes.has("siteverify-network-error") ||
+  const httpError = [...codes].find(code =>
+    code.startsWith("siteverify-http-")
+  );
+
+  if (httpError) {
+    return `Сервис проверки Turnstile вернул HTTP-ошибку (${httpError}). Посмотри Worker Logs.`;
+  }
+
+  if (codes.has("siteverify-timeout")) {
+    return "Проверка Turnstile превысила время ожидания. Попробуй позже.";
+  }
+
+  if (codes.has("siteverify-network-error") ||
       codes.has("internal-error")) {
-    return "Cloudflare не удалось проверить капчу из-за ошибки соединения. Попробуй позже.";
+    return "Worker не смог соединиться с сервисом проверки Turnstile. Проверь Logs в Cloudflare.";
   }
 
   return "Проверка антибота не прошла. Проверь ключи Turnstile и пройди капчу заново.";
@@ -175,7 +219,7 @@ function turnstileFailureMessage(errorCodes) {
 
 
 // ======================================================
-// DURABLE OBJECT — защита от повторных голосов
+// DURABLE OBJECT: VoteRegistry
 // ======================================================
 
 export class VoteRegistry {
@@ -201,7 +245,7 @@ export class VoteRegistry {
       });
     }
 
-    // Claim a vote
+    // Регистрация голоса
     if (url.pathname === "/claim") {
       const {
         category,
@@ -249,7 +293,7 @@ export class VoteRegistry {
       });
     }
 
-    // Rollback if Discord rejected the vote
+    // Отмена голоса, если Discord не принял его
     if (url.pathname === "/rollback") {
       const {
         category,
@@ -340,7 +384,7 @@ export default {
       try {
         const body = await request.json();
 
-        // Honeypot
+        // Honeypot против простых ботов
         if (String(body.website || "").trim()) {
           return json({ ok: true }, 200, origin);
         }
@@ -397,7 +441,7 @@ export default {
           }, 500, origin);
         }
 
-        // Verify CAPTCHA server-side
+        // Проверка капчи на сервере
         const ip =
           request.headers.get("CF-Connecting-IP") || "";
 
@@ -432,10 +476,12 @@ export default {
         const claimId = crypto.randomUUID();
 
         const guard = env.VOTE_REGISTRY.get(
-          env.VOTE_REGISTRY.idFromName("burdosley-vote-guard")
+          env.VOTE_REGISTRY.idFromName(
+            "burdosley-vote-guard"
+          )
         );
 
-        // Register vote in Durable Object
+        // Регистрируем голос в Durable Object
         const claimResponse = await guard.fetch(
           "https://vote-guard/claim",
           {
@@ -486,7 +532,7 @@ export default {
             ? "бурмалда-кинг"
             : "пантера бурмалды";
 
-        // Send vote to Discord webhook
+        // Отправляем голос в Discord
         const discordResponse = await fetch(
           env.DISCORD_WEBHOOK_URL,
           {
