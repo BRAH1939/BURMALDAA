@@ -1018,6 +1018,19 @@
   }
 
   /* ================= ОТПРАВКА ФОТО ЧЕРЕЗ GITHUB ================= */
+  .contacts-forms-row{display:flex;align-items:stretch;gap:22px;margin-top:22px;flex-wrap:wrap}
+  .contacts-forms-row .photo-upload-box{flex:1 1 420px;max-width:none;margin-top:0}
+  .vote-box{flex:1 1 320px;max-width:780px;margin:0;padding:24px;background:linear-gradient(180deg,#17002e,#05000a);border:2px solid #7a1fff;border-radius:16px;color:#d9c6ff}
+  .vote-title{margin:0 0 8px;color:#a35bff;font-family:'Rubik Mono One',Impact,sans-serif;font-size:17px}
+  .vote-description{margin:0 0 18px;line-height:1.5}
+  .vote-box input,.vote-box select{display:block;width:100%;padding:12px;color:#fff;background:#0b0014;border:2px solid #3d0d6b;border-radius:10px;font:inherit}
+  .vote-box input:focus,.vote-box select:focus{outline:2px solid #a35bff;outline-offset:2px}
+  .vote-submit{width:100%;margin-top:18px;padding:14px 18px;border:2px solid #a35bff;border-radius:12px;background:#7a1fff;color:#fff;cursor:pointer;font-family:'Rubik Mono One',Impact,sans-serif;font-size:13px;transition:background .2s,transform .2s}
+  .vote-submit:hover{background:#963fff;transform:translateY(-2px)}
+  .vote-submit:disabled{opacity:.55;cursor:wait;transform:none}
+  .vote-status{min-height:22px;margin:12px 0 0;font-size:14px;overflow-wrap:anywhere}
+  @media(max-width:700px){.contacts-forms-row{display:block}.contacts-forms-row .vote-box{margin-top:20px}}
+
 
 
   /* Анонимная отправка фотографий через Worker */
@@ -1121,6 +1134,7 @@
         </div>
 
         
+        <div class="contacts-forms-row">
         <div class="photo-upload-box reveal">
           <h3 class="photo-upload-title">Отправить фотографию</h3>
           <p class="photo-upload-description">
@@ -1139,6 +1153,21 @@
             <p class="photo-upload-status" id="photoUploadStatus" role="status" aria-live="polite"></p>
           </form>
         </div>
+        <div class="vote-box reveal">
+          <h3 class="vote-title">Голосование</h3>
+          <p class="vote-description">Впиши свой Discord-юзернейм точно как в Discord и выбери участника, за которого голосуешь.</p>
+          <form id="voteForm">
+            <label class="photo-upload-label" for="voteDiscordUsername">Discord-юзернейм (точно как в Discord)</label>
+            <input id="voteDiscordUsername" name="discordUsername" type="text" maxlength="80" placeholder="Твой Discord username" required autocomplete="off">
+            <label class="photo-upload-label" for="voteCandidate">За кого голосуешь?</label>
+            <select id="voteCandidate" name="candidate" required></select>
+            <div class="photo-honeypot" aria-hidden="true"><label for="voteWebsite">Не заполняй это поле</label><input id="voteWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+            <button class="vote-submit" id="voteSubmit" type="submit">ОТПРАВИТЬ ГОЛОС</button>
+            <p class="vote-status" id="voteStatus" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+        </div>
+
 
         <p><b>discord : b.r.a.h.</b></p>
         <p>OOO JJS BRATVA</p>
@@ -2087,7 +2116,7 @@ if (photoUploadForm) {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowed.includes(file.type)) { status.textContent = 'Поддерживаются JPG, PNG, WEBP и GIF.'; return; }
     if (file.size > 8 * 1024 * 1024) { status.textContent = 'Файл слишком большой. Максимум — 8 МБ.'; return; }
-    if (PHOTO_UPLOAD_API.includes('YOUR-WORKER-NAME')) {
+    if (PHOTO_UPLOAD_API.includes('https://worker.kozukhargg.workers.dev/upload')) {
       status.textContent = 'Отправка ещё не настроена: администратор должен подключить сервер.';
       return;
     }
@@ -2110,6 +2139,48 @@ if (photoUploadForm) {
     } finally {
       submit.disabled = false;
     }
+  });
+}
+
+
+/* ============================================================
+   ГОЛОСОВАНИЕ через тот же Cloudflare Worker / Discord webhook
+   Чтобы добавить кандидата, добавь его имя в массив VOTE_CANDIDATES.
+   ============================================================ */
+const VOTE_CANDIDATES = ['BRAH', 'ANKH', 'COCOS', 'ABEVE', 'ASM', 'BAL', 'BER', 'BIN', 'CAESAR'];
+const voteForm = document.getElementById('voteForm');
+const voteSelect = document.getElementById('voteCandidate');
+if (voteSelect) {
+  VOTE_CANDIDATES.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name; option.textContent = name;
+    voteSelect.appendChild(option);
+  });
+}
+if (voteForm) {
+  voteForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const username = document.getElementById('voteDiscordUsername').value.trim();
+    const candidate = voteSelect.value;
+    const status = document.getElementById('voteStatus');
+    const submit = document.getElementById('voteSubmit');
+    const honeypot = document.getElementById('voteWebsite');
+    if (honeypot.value) return;
+    if (!username) { status.textContent = 'Впиши свой Discord-юзернейм.'; return; }
+    if (!candidate) { status.textContent = 'Выбери участника.'; return; }
+    submit.disabled = true;
+    status.textContent = 'Отправляем голос...';
+    try {
+      const response = await fetch('https://worker.kozukhargg.workers.dev/vote', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({discordUsername: username, candidate, website: ''})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Не удалось отправить голос.');
+      status.textContent = 'Голос успешно отправлен! Спасибо.';
+      voteForm.reset();
+    } catch (error) { status.textContent = error.message || 'Ошибка соединения. Попробуй позже.'; }
+    finally { submit.disabled = false; }
   });
 }
 
